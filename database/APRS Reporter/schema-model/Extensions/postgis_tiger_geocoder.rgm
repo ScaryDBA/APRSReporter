@@ -1,0 +1,5 @@
+extension "postgis_tiger_geocoder" {
+  version = 3.5.1
+  schema = "tiger"
+}
+

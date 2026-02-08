@@ -1,0 +1,5 @@
+extension "fuzzystrmatch" {
+  version = 1.2
+  schema = "public"
+}
+

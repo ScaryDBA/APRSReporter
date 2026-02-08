@@ -1,0 +1,89 @@
+table "reports"."location_info" {
+  primaryKey = {
+    columns = [
+      "location_info_id"
+    ]
+    name = "location_info_pkey"
+    objectType = primaryKey
+  }
+  owner = gis_admin
+  columns = (
+    column "location_info_id" {
+      type = bigint
+      null = NOT NULL
+      generatedAsIdentity = ALWAYS
+    }
+    column "loc_class" {
+      type = text
+      null = NOT NULL
+    }
+    column "loc_name" {
+      type = text
+      null = NOT NULL
+    }
+    column "loc_type" {
+      type = character(1)
+      null = NOT NULL
+    }
+    column "loc_time" {
+      type = timestamp with time zone
+      null = NOT NULL
+    }
+    column "lasttime" {
+      type = timestamp with time zone
+      null = NOT NULL
+    }
+    column "lat" {
+      type = numeric(9,5)
+      null = NOT NULL
+    }
+    column "lon" {
+      type = numeric(9,5)
+      null = NOT NULL
+    }
+    column "gis_point" {
+      type = public.geography(Point,4326)
+      null = NOT NULL
+    }
+    column "course" {
+      type = integer
+      null = NOT NULL
+    }
+    column "speed" {
+      type = integer
+      null = NOT NULL
+    }
+    column "altitude" {
+      type = integer
+      null = NOT NULL
+    }
+    column "symbol" {
+      type = text
+      null = NOT NULL
+    }
+    column "srccall" {
+      type = text
+      null = NOT NULL
+    }
+    column "dstcall" {
+      type = text
+      null = NOT NULL
+    }
+    column "loc_comment" {
+      type = text
+    }
+    column "loc_path" {
+      type = text
+    }
+    column "phg" {
+      type = text
+    }
+    column "status" {
+      type = text
+    }
+    column "status_lasttime" {
+      type = timestamp with time zone
+    }
+  )
+}
+

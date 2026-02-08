@@ -1,0 +1,27 @@
+databaseType = "PostgreSql"
+id = "6b19259a-5311-48df-bed8-a5a3a6643a6d"
+name = "APRS Reporter"
+
+[flyway]
+callbackLocations = [ "filesystem:callbacks" ]
+locations = [ "filesystem:migrations" ]
+mixed = true
+outOfOrder = true
+schemaModelLocation = "schema-model"
+validateMigrationNaming = true
+
+  [flyway.check]
+  majorTolerance = 0
+
+[flywayDesktop]
+developmentEnvironment = "development"
+shadowEnvironment = "shadow"
+
+[redgateCompare]
+filterFile = "filter.rgf"
+
+[redgateCompare.postgresql.options.behavior]
+detectRenames = "identical-only"
+
+[redgateCompare.postgresql.options.ignores]
+ignoreNewlinesInTextObjects = "off"
