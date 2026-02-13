@@ -10,11 +10,11 @@ CREATE TABLE reports.location_info
 	loc_time timestamptz NOT NULL,
 	lasttime timestamptz NOT NULL,
 	lat numeric(9,5) NOT NULL,
-	lon numeric(9,5) NOT NULL,
+	lon numeric(10,5) NOT NULL,
 	gis_point geography(Point,4326) NOT NULL,
-	course int4 NOT NULL,
-	speed int4 NOT NULL,
-	altitude int4 NOT NULL,
+	course numeric(5,2) NOT NULL,
+	speed numeric(6,2) NOT NULL,
+	altitude numeric(8,2) NOT NULL,
 	symbol text NOT NULL,
 	srccall text NOT NULL,
 	dstcall text NOT NULL,
@@ -22,7 +22,8 @@ CREATE TABLE reports.location_info
 	loc_path text NULL,
 	phg text NULL,
 	status text NULL,
-	status_lasttime timestamptz NULL
+	status_lasttime timestamptz NULL,
+	CONSTRAINT unique_location_entry UNIQUE (loc_name, lasttime)
 );
 
 CREATE OR REPLACE PROCEDURE reports.add_aprs_info(loc jsonb)
@@ -56,7 +57,7 @@ BEGIN
         to_timestamp((loc->>'time')::double precision)::timestamptz,
         to_timestamp((loc->>'lasttime')::double precision)::timestamptz,
         (loc->>'lat')::numeric(9,5),
-        (loc->>'lng')::numeric(9,5),                     -- APRS.fi field is "lng"
+        (loc->>'lng')::numeric(10,5),                     -- APRS.fi field is "lng"
         ST_SetSRID(
             ST_MakePoint(
                 (loc->>'lng')::double precision,
@@ -64,9 +65,9 @@ BEGIN
             ),
             4326
         ),
-        (loc->>'course')::numeric(9,5),
-        (loc->>'speed')::int4,
-        (loc->>'altitude')::int4,
+        (loc->>'course')::numeric(5,2),
+        (loc->>'speed')::numeric(6,2),
+        (loc->>'altitude')::numeric(8,2),
         loc->>'symbol',
         loc->>'srccall',
         loc->>'dstcall',
@@ -75,7 +76,8 @@ BEGIN
         loc->>'phg',
         loc->>'status',
         to_timestamp((loc->>'status_lasttime')::double precision)::timestamptz
-    ;
+    ON CONFLICT (loc_name, lasttime) DO NOTHING;  -- Skip duplicates
+    
 END;
 $$;
 

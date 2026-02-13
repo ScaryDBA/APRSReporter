@@ -5,6 +5,7 @@ import os
 import logging
 from datetime import datetime
 import boto3
+
 SECRET_NAME = "aprs-db-secret"  # Your Secrets Manager secret name
 secrets_client = boto3.client('secretsmanager')
 
@@ -19,35 +20,56 @@ DB_NAME = "aprs_reporter"
 
 def lambda_handler(event, context):
     # Fetch from aprs.fi
-    url = f"https://api.aprs.fi/api/get?what=loc&call={CALLSIGNS}&apikey={API_KEY}&format=json"
+    url = f"https://api.aprs.fi/api/get?name={CALLSIGNS}&what=loc&apikey={API_KEY}&format=json"
     
     try:
-        with urllib.request.urlopen(url) as response:
+        # Add 15 second timeout to prevent hanging
+        with urllib.request.urlopen(url, timeout=15) as response:
             data = json.loads(response.read().decode())
         
-        if data.get('entries') != 1:
-            logger.warning(f"Unexpected entries: {data.get('entries')}")
+        # Log the full API response for debugging
+        logger.info(f"API Response: {json.dumps(data)}")
+        
+        # Check if API call was successful
+        if data.get('result') != 'ok':
+            logger.warning(f"API returned non-ok result: {data.get('result')}")
+            return {'statusCode': 200, 'body': json.dumps('API call failed')}
+        
+        # Check if there are any entries
+        entry_count = data.get('found', 0)
+        if entry_count == 0:
+            logger.warning(f"No entries found in API response")
             return {'statusCode': 200, 'body': json.dumps('No new data')}
         
-        entries = data['entries']
-        for entry in entries:
-            # Call your stored procedure
-            # Get DB credentials from Secrets Manager
-            secret_response = secrets_client.get_secret_value(SecretId=SECRET_NAME)
-            secret_dict = json.loads(secret_response['SecretString'])
-
-            conn = psycopg2.connect(
-                host=DB_HOST,
-                database=DB_NAME,
-                user=secret_dict['username'],
-                password=secret_dict['password'],
-                sslmode='require'
-            )
-
-            cur = conn.cursor()
-            cur.execute("CALL reports.add_aprs_info(%s)", (json.dumps(entry),))
-            conn.commit()
-            cur.close()
+        logger.info(f"Found {entry_count} entries")
+        
+        # Get the actual data from the 'entries' array
+        entries = data.get('entries', [])
+        
+        # Get DB credentials from Secrets Manager (once, not per entry)
+        secret_response = secrets_client.get_secret_value(SecretId=SECRET_NAME)
+        secret_dict = json.loads(secret_response['SecretString'])
+        
+        # Connect to database (once, not per entry)
+        conn = psycopg2.connect(
+            host=DB_HOST,
+            database=DB_NAME,
+            user=secret_dict['username'],
+            password=secret_dict['password'],
+            sslmode='require',
+            connect_timeout=10
+        )
+        
+        try:
+            for entry in entries:
+                logger.info(f"Processing entry: {json.dumps(entry)}")
+                
+                cur = conn.cursor()
+                cur.execute("CALL reports.add_aprs_info(%s)", (json.dumps(entry),))
+                conn.commit()
+                cur.close()
+                logger.info(f"Successfully inserted entry for {entry.get('name', 'unknown')}")
+        finally:
             conn.close()
             
         logger.info(f"Processed {len(entries)} entries at {datetime.now()}")
