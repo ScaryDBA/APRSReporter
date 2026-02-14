@@ -68,6 +68,32 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
+        .attribution {
+            text-align: center;
+            color: #95a5a6;
+            font-size: 0.75rem;
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+        
+        .date-filter {
+            display: inline-block;
+            margin-left: 1rem;
+        }
+        
+        .date-filter label {
+            margin-right: 0.5rem;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        .date-filter input {
+            padding: 0.4rem 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -115,9 +141,15 @@
             <button id="btnHeatmap">Show Coverage Area</button>
             <button id="btnExtremes">Show Extremes</button>
             <button id="btnRefresh">↻ Refresh Data</button>
+            <div class="date-filter">
+                <label for="dateFilter">Filter by date:</label>
+                <input type="date" id="dateFilter" />
+                <button id="btnClearFilter">Clear</button>
+            </div>
         </div>
         
         <div id="map"></div>
+        <div class="attribution">Data from aprs.fi</div>
         
         <div class="stats">
             <div class="stat-card">

@@ -65,11 +65,40 @@ def lambda_handler(event, context):
         
         # Route: Get all points as GeoJSON
         if path == '/points':
-            cur.execute("""
-                SELECT geojson FROM reports.points_geojson
-            """)
-            result = cur.fetchone()
-            body = result[0] if result else {'type': 'FeatureCollection', 'features': []}
+            date_filter = query_params.get('date')
+            
+            if date_filter:
+                # Filter by specific date
+                cur.execute("""
+                    SELECT jsonb_build_object(
+                        'type', 'FeatureCollection',
+                        'features', jsonb_agg(
+                            jsonb_build_object(
+                                'type', 'Feature',
+                                'geometry', ST_AsGeoJSON(gis_point::geometry)::jsonb,
+                                'properties', jsonb_build_object(
+                                    'time', lasttime,
+                                    'speed', actual_speed_kmh,
+                                    'altitude', altitude,
+                                    'distance', distance_from_previous
+                                )
+                            )
+                            ORDER BY lasttime
+                        )
+                    )
+                    FROM reports.location_info
+                    WHERE loc_name = 'KC1KCE-8'
+                      AND DATE(lasttime) = %s
+                """, (date_filter,))
+                result = cur.fetchone()
+                body = result[0] if result else {'type': 'FeatureCollection', 'features': []}
+            else:
+                # Get all points
+                cur.execute("""
+                    SELECT geojson FROM reports.points_geojson
+                """)
+                result = cur.fetchone()
+                body = result[0] if result else {'type': 'FeatureCollection', 'features': []}
         
         # Route: Get track as LineString
         elif path == '/route':

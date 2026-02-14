@@ -37,7 +37,11 @@ async function showPoints() {
     clearLayers();
     currentMode = 'points';
     
-    const data = await fetchData('/points');
+    // Get date filter value
+    const dateFilter = document.getElementById('dateFilter').value;
+    const endpoint = dateFilter ? `/points?date=${dateFilter}` : '/points';
+    
+    const data = await fetchData(endpoint);
     if (!data || !data.features) return;
     
     const geojsonLayer = L.geoJSON(data, {
@@ -301,6 +305,19 @@ document.getElementById('btnRefresh').addEventListener('click', () => {
         case 'extremes': showExtremes(); break;
     }
 });
+// Date filter change handler
+document.getElementById('dateFilter').addEventListener('change', () => {
+    if (currentMode === 'points') {
+        showPoints();
+    }
+});
 
+// Clear date filter
+document.getElementById('btnClearFilter').addEventListener('click', () => {
+    document.getElementById('dateFilter').value = '';
+    if (currentMode === 'points') {
+        showPoints();
+    }
+});
 // Initial load
 showPoints();
