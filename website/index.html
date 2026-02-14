@@ -127,6 +127,45 @@
             padding: 2rem;
             color: #7f8c8d;
         }
+        
+        .about {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-top: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        
+        .about img {
+            max-width: 300px;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .about-content h2 {
+            color: #2c3e50;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .about-content p {
+            color: #555;
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .about {
+                flex-direction: column;
+            }
+            .about img {
+                max-width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -149,7 +188,7 @@
         </div>
         
         <div id="map"></div>
-        <div class="attribution">Data from aprs.fi</div>
+        <div class="attribution">Position data provided by <a href="https://aprs.fi" target="_blank" style="color: #7f8c8d; text-decoration: underline;">aprs.fi</a></div>
         
         <div class="stats">
             <div class="stat-card">
@@ -167,6 +206,14 @@
             <div class="stat-card">
                 <h3>Last Update</h3>
                 <div class="value" id="statLastUpdate">-</div>
+            </div>
+        </div>
+        
+        <div class="about">
+            <img src="maverick-radio.jpg" alt="BridgeCom Systems Maverick Transceiver" onerror="this.style.display='none'">
+            <div class="about-content">
+                <h2>About This Project</h2>
+                <p>This web page is a project to demonstrate the operations of the BridgeCom Systems Maverick transceiver. It's also a demonstration of AWS Lambda Functions, PostgreSQL running on AWS Aurora, and the PostGIS Global Information Systems extension. The whole thing was built using Claude AI.</p>
             </div>
         </div>
     </div>
