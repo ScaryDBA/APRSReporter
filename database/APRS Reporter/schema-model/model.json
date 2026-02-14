@@ -3,7 +3,7 @@
   "database-properties": {
     "database-version": "170004",
     "database-flavor": "postgres",
-    "model-version": "4.0"
+    "model-version": "4.3"
   },
   "model-format": "rgmf"
 }

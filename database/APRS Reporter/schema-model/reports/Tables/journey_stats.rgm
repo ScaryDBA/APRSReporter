@@ -1,0 +1,38 @@
+table "reports"."journey_stats" {
+  primaryKey = {
+    columns = [
+      "journey_date"
+    ]
+    name = "journey_stats_pkey"
+    objectType = primaryKey
+  }
+  owner = postgres
+  columns = (
+    column "journey_date" {
+      type = date
+      null = NOT NULL
+    }
+    column "total_distance_km" {
+      type = numeric(10,2)
+    }
+    column "max_speed_kmh" {
+      type = numeric(6,2)
+    }
+    column "total_moving_time" {
+      type = interval
+    }
+    column "unique_locations" {
+      type = integer
+    }
+    column "bounding_box" {
+      type = public.geography
+    }
+    column "first_transmission" {
+      type = timestamp with time zone
+    }
+    column "last_transmission" {
+      type = timestamp with time zone
+    }
+  )
+}
+

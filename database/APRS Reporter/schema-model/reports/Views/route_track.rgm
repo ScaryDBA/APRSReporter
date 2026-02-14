@@ -1,0 +1,31 @@
+view "reports"."route_track" {
+  text = """-
+SELECT loc_name,
+    date(lasttime) AS track_date,
+    (public.st_makeline((gis_point)::public.geometry ORDER BY lasttime))::public.geography AS route_line,
+    count(*) AS point_count,
+    sum(distance_from_previous) AS total_km
+   FROM reports.location_info
+  WHERE (loc_name = 'KC1KCE-8'::text)
+  GROUP BY loc_name, (date(lasttime));
+"""
+  owner = postgres
+  columns = (
+    column "loc_name" {
+      type = text
+    }
+    column "track_date" {
+      type = date
+    }
+    column "route_line" {
+      type = public.geography
+    }
+    column "point_count" {
+      type = bigint
+    }
+    column "total_km" {
+      type = numeric
+    }
+  )
+}
+

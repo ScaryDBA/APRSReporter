@@ -38,7 +38,7 @@ table "reports"."location_info" {
       null = NOT NULL
     }
     column "lon" {
-      type = numeric(9,5)
+      type = numeric(10,5)
       null = NOT NULL
     }
     column "gis_point" {
@@ -46,15 +46,15 @@ table "reports"."location_info" {
       null = NOT NULL
     }
     column "course" {
-      type = integer
+      type = numeric(5,2)
       null = NOT NULL
     }
     column "speed" {
-      type = integer
+      type = numeric(6,2)
       null = NOT NULL
     }
     column "altitude" {
-      type = integer
+      type = numeric(8,2)
       null = NOT NULL
     }
     column "symbol" {
@@ -84,6 +84,48 @@ table "reports"."location_info" {
     column "status_lasttime" {
       type = timestamp with time zone
     }
+    column "distance_from_previous" {
+      type = numeric(10,2)
+    }
+    column "time_since_previous" {
+      type = interval
+    }
+    column "actual_speed_kmh" {
+      type = numeric(6,2)
+    }
+    column "is_moving" {
+      type = boolean
+    }
   )
+}
+
+index "reports"."unique_location_entry" {
+  table = "reports"."location_info"
+  type = btree
+  columns = <
+    {
+      definition = loc_name
+    }
+
+    {
+      definition = lasttime
+    }
+
+  >
+  isUnique = True
+  isConstraint = true
+}
+
+trigger "reports"."location_info"."trg_calculate_metrics" {
+  timing = BEFORE
+  events = [
+    INSERT
+  ]
+  level = ROW
+  function = reports.calculate_position_metrics
+  functionArguments = [
+  ]
+  table = "reports"."location_info"
+  constraint = False
 }
 

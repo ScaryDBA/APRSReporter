@@ -1,0 +1,51 @@
+function "reports"."calculate_position_metrics()" {
+  text = """
+
+DECLARE
+  prev_record RECORD;
+  distance_meters numeric;
+  time_diff_seconds numeric;
+BEGIN
+  -- Find the previous record for this callsign
+  SELECT * INTO prev_record
+  FROM reports.location_info
+  WHERE loc_name = NEW.loc_name
+    AND lasttime < NEW.lasttime
+  ORDER BY lasttime DESC
+  LIMIT 1;
+  
+  -- If there's a previous record, calculate metrics
+  IF FOUND THEN
+    -- Distance in meters, convert to km
+    distance_meters := ST_Distance(prev_record.gis_point, NEW.gis_point);
+    NEW.distance_from_previous := ROUND((distance_meters / 1000.0)::numeric, 2);
+    
+    -- Time difference
+    NEW.time_since_previous := NEW.lasttime - prev_record.lasttime;
+    
+    -- Calculate actual speed (km/h) from distance and time
+    time_diff_seconds := EXTRACT(EPOCH FROM NEW.time_since_previous);
+    IF time_diff_seconds > 0 THEN
+      NEW.actual_speed_kmh := ROUND(((distance_meters / 1000.0) / (time_diff_seconds / 3600.0))::numeric, 2);
+    END IF;
+    
+    -- Determine if moving (threshold: > 1 km/h)
+    NEW.is_moving := COALESCE(NEW.actual_speed_kmh, 0) > 1.0;
+  ELSE
+    -- First record for this callsign
+    NEW.distance_from_previous := 0;
+    NEW.time_since_previous := NULL;
+    NEW.actual_speed_kmh := NULL;
+    NEW.is_moving := FALSE;
+  END IF;
+  
+  RETURN NEW;
+END;
+"""
+  returnType = trigger
+  arguments = [
+  ]
+  language = plpgsql
+  owner = postgres
+}
+

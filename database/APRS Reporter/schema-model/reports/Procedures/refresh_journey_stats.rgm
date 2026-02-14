@@ -1,0 +1,45 @@
+procedure "reports"."refresh_journey_stats(date)" {
+  text = """
+
+BEGIN
+  -- Delete existing stats for this date
+  DELETE FROM reports.journey_stats WHERE journey_date = p_date;
+  
+  -- Calculate and insert new stats
+  INSERT INTO reports.journey_stats (
+    journey_date,
+    total_distance_km,
+    max_speed_kmh,
+    total_moving_time,
+    unique_locations,
+    bounding_box,
+    first_transmission,
+    last_transmission
+  )
+  SELECT
+    p_date,
+    ROUND(SUM(COALESCE(distance_from_previous, 0))::numeric, 2),
+    MAX(actual_speed_kmh),
+    SUM(time_since_previous) FILTER (WHERE is_moving = TRUE),
+    COUNT(DISTINCT gis_point),
+    ST_ConvexHull(ST_Collect(gis_point::geometry))::geography,
+    MIN(lasttime),
+    MAX(lasttime)
+  FROM reports.location_info
+  WHERE DATE(lasttime) = p_date
+    AND loc_name = 'KC1KCE-8';
+END;
+"""
+  arguments = <
+    {
+      name = p_date
+      type = date
+      mode = IN
+      default = CURRENT_DATE
+    }
+
+  >
+  language = plpgsql
+  owner = postgres
+}
+
