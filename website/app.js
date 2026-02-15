@@ -77,25 +77,42 @@ async function showPoints() {
 }
 
 // Show route view
+// Show route view - displays detected journeys
 async function showRoute() {
     clearLayers();
     currentMode = 'route';
     
-    const data = await fetchData('/routes');
+    // Get date filter value
+    const dateFilter = document.getElementById('dateFilter').value;
+    const endpoint = dateFilter ? `/routes?date=${dateFilter}` : '/routes';
+    
+    const data = await fetchData(endpoint);
     if (!data || !data.features) return;
     
+    const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6'];
+    
     const geojsonLayer = L.geoJSON(data, {
-        style: {
-            color: '#e74c3c',
-            weight: 3,
-            opacity: 0.8
+        style: (feature) => {
+            const colorIndex = feature.properties.journey_id % colors.length;
+            return {
+                color: colors[colorIndex],
+                weight: 3,
+                opacity: 0.8
+            };
         },
         onEachFeature: (feature, layer) => {
             const props = feature.properties;
+            const startTime = new Date(props.start_time).toLocaleString();
+            const endTime = new Date(props.end_time).toLocaleString();
+            
             layer.bindPopup(`
-                <b>Date:</b> ${props.date}<br>
+                <b>Journey #${props.journey_id}</b><br>
+                <b>Start:</b> ${startTime}<br>
+                <b>End:</b> ${endTime}<br>
+                <b>Duration:</b> ${props.duration_minutes} minutes<br>
                 <b>Points:</b> ${props.points}<br>
-                <b>Distance:</b> ${props.distance_km} km
+                <b>Distance:</b> ${props.distance_km} km<br>
+                <b>Max Speed:</b> ${props.max_speed_kmh} km/h
             `);
         }
     });
@@ -105,26 +122,12 @@ async function showRoute() {
     
     if (data.features.length > 0) {
         map.fitBounds(geojsonLayer.getBounds(), { padding: [50, 50] });
-    }
-    
-    // Also show points
-    const pointsData = await fetchData('/points');
-    if (pointsData) {
-        const pointsGeoJson = L.geoJSON(pointsData, {
-            pointToLayer: (feature, latlng) => {
-                return L.circleMarker(latlng, {
-                    radius: 4,
-                    fillColor: '#3498db',
-                    color: '#fff',
-                    weight: 1,
-                    opacity: 1,
-                    fillOpacity: 0.6
-                });
-            }
-        });
-        routeLayer.addLayer(pointsGeoJson);
+        
+        // Show journey count in console
+        console.log(`Displaying ${data.features.length} recent journeys`);
     }
 }
+
 
 // Show coverage area (convex hull)
 async function showCoverage() {
@@ -317,6 +320,8 @@ document.getElementById('btnRefresh').addEventListener('click', () => {
 document.getElementById('dateFilter').addEventListener('change', () => {
     if (currentMode === 'points') {
         showPoints();
+    } else if (currentMode === 'route') {
+        showRoute();
     }
 });
 
@@ -325,7 +330,10 @@ document.getElementById('btnClearFilter').addEventListener('click', () => {
     document.getElementById('dateFilter').value = '';
     if (currentMode === 'points') {
         showPoints();
+    } else if (currentMode === 'route') {
+        showRoute();
     }
+});
 });
 
 // Locations expandable section
