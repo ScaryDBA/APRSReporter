@@ -46,9 +46,19 @@ async function showPoints() {
     
     const geojsonLayer = L.geoJSON(data, {
         pointToLayer: (feature, latlng) => {
+            const speed = feature.properties.speed || 0;
+            let fillColor;
+            if (speed <= 5) {
+                fillColor = '#3498db'; // Blue - stationary/very slow
+            } else if (speed <= 20) {
+                fillColor = '#f39c12'; // Orange - slow moving
+            } else {
+                fillColor = '#e74c3c'; // Red - fast moving
+            }
+            
             return L.circleMarker(latlng, {
                 radius: 6,
-                fillColor: feature.properties.speed > 10 ? '#e74c3c' : '#3498db',
+                fillColor: fillColor,
                 color: '#fff',
                 weight: 1,
                 opacity: 1,
@@ -333,7 +343,6 @@ document.getElementById('btnClearFilter').addEventListener('click', () => {
     } else if (currentMode === 'route') {
         showRoute();
     }
-});
 });
 
 // Locations expandable section
