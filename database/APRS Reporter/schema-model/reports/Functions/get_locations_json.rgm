@@ -1,0 +1,28 @@
+function "reports"."get_locations_json()" {
+  text = """
+
+    SELECT COALESCE(
+        json_agg(row_to_json(t) ORDER BY visit_count DESC, city),
+        '[]'::json
+    )
+    FROM (
+        SELECT 
+            city,
+            state,
+            country,
+            visit_count,
+            first_visit,
+            last_visit
+        FROM reports.locations_visited
+        ORDER BY visit_count DESC, city
+    ) t;
+"""
+  returnType = json
+  arguments = [
+  ]
+  language = sql
+  volatility = STABLE
+  owner = postgres
+  comment = Returns visited locations with visit counts as JSON array
+}
+

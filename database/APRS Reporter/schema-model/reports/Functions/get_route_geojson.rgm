@@ -1,0 +1,42 @@
+function "reports"."get_route_geojson(date)" {
+  text = """
+
+DECLARE
+    v_result jsonb;
+BEGIN
+    SELECT jsonb_build_object(
+        'type', 'FeatureCollection',
+        'features', jsonb_agg(
+            jsonb_build_object(
+                'type', 'Feature',
+                'geometry', ST_AsGeoJSON(route_line::geometry)::jsonb,
+                'properties', jsonb_build_object(
+                    'date', track_date,
+                    'points', point_count,
+                    'distance_km', total_km
+                )
+            )
+        )
+    )
+    INTO v_result
+    FROM reports.route_track
+    WHERE track_date = p_date;
+    
+    RETURN COALESCE(v_result, '{"type": "FeatureCollection", "features": []}'::jsonb);
+END;
+"""
+  returnType = jsonb
+  arguments = <
+    {
+      name = p_date
+      type = date
+      mode = IN
+      default = CURRENT_DATE
+    }
+
+  >
+  language = plpgsql
+  owner = postgres
+  comment = Returns route track as GeoJSON LineString for a specific date
+}
+

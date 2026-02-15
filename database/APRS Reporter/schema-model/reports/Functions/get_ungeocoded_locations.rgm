@@ -1,0 +1,47 @@
+function "reports"."get_ungeocoded_locations(integer)" {
+  text = """
+
+BEGIN
+    RETURN QUERY
+    WITH distinct_coords AS (
+        SELECT 
+            li.lat,
+            li.lon,
+            COUNT(*) as point_count
+        FROM reports.location_info li
+        WHERE li.loc_name = 'KC1KCE-8'
+        GROUP BY li.lat, li.lon
+    )
+    SELECT 
+        dc.lat,
+        dc.lon,
+        dc.point_count
+    FROM distinct_coords dc
+    WHERE NOT EXISTS (
+        SELECT 1 
+        FROM reports.location_lookup ll
+        WHERE ST_DWithin(
+            ll.center_point,
+            ST_SetSRID(ST_MakePoint(dc.lon, dc.lat), 4326),
+            ll.radius_km * 1000
+        )
+    )
+    ORDER BY dc.point_count DESC
+    LIMIT p_limit;
+END;
+"""
+  returnType = TABLE(lat numeric, lon numeric, point_count bigint)
+  arguments = <
+    {
+      name = p_limit
+      type = integer
+      mode = IN
+      default = 50
+    }
+
+  >
+  language = plpgsql
+  owner = postgres
+  comment = Returns coordinates that need reverse geocoding
+}
+

@@ -1,0 +1,36 @@
+# Lambda test responses
+response.json
+*.pyc
+__pycache__/
+
+# Environment files (if added later)
+.env
+*.env
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.zip
+layer/
+python/
+
+# Logs
+*.log
+
+# Database dumps
+*.sql.backup
+*.dump
+
+# Secrets (just in case)
+*secret*
+*password*
+*.pem
+*.key

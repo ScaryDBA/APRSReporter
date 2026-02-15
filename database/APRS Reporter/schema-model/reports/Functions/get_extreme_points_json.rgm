@@ -1,0 +1,52 @@
+function "reports"."get_extreme_points_json(text)" {
+  text = """
+
+DECLARE
+    v_result json;
+BEGIN
+    SELECT json_build_object(
+        'northernmost', (SELECT row_to_json(t) FROM (
+            SELECT lasttime, lat, lon, ST_Y(gis_point::geometry) as latitude
+            FROM reports.location_info
+            WHERE loc_name = p_callsign
+            ORDER BY ST_Y(gis_point::geometry) DESC LIMIT 1
+        ) t),
+        'southernmost', (SELECT row_to_json(t) FROM (
+            SELECT lasttime, lat, lon, ST_Y(gis_point::geometry) as latitude
+            FROM reports.location_info
+            WHERE loc_name = p_callsign
+            ORDER BY ST_Y(gis_point::geometry) ASC LIMIT 1
+        ) t),
+        'easternmost', (SELECT row_to_json(t) FROM (
+            SELECT lasttime, lat, lon, ST_X(gis_point::geometry) as longitude
+            FROM reports.location_info
+            WHERE loc_name = p_callsign
+            ORDER BY ST_X(gis_point::geometry) DESC LIMIT 1
+        ) t),
+        'westernmost', (SELECT row_to_json(t) FROM (
+            SELECT lasttime, lat, lon, ST_X(gis_point::geometry) as longitude
+            FROM reports.location_info
+            WHERE loc_name = p_callsign
+            ORDER BY ST_X(gis_point::geometry) ASC LIMIT 1
+        ) t)
+    )
+    INTO v_result;
+    
+    RETURN COALESCE(v_result, '{}'::json);
+END;
+"""
+  returnType = json
+  arguments = <
+    {
+      name = p_callsign
+      type = text
+      mode = IN
+      default = 'KC1KCE-8'::text
+    }
+
+  >
+  language = plpgsql
+  owner = postgres
+  comment = Returns extreme points (northernmost, southernmost, easternmost, westernmost) as JSON
+}
+

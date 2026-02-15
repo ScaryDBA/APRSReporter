@@ -1,0 +1,36 @@
+function "reports"."get_convex_hull_geojson(text)" {
+  text = """
+
+DECLARE
+    v_result jsonb;
+BEGIN
+    SELECT jsonb_build_object(
+        'type', 'Feature',
+        'geometry', ST_AsGeoJSON(ST_ConvexHull(ST_Collect(gis_point::geometry)))::jsonb,
+        'properties', jsonb_build_object(
+            'description', 'Coverage area (convex hull)',
+            'area_km2', ROUND((ST_Area(ST_ConvexHull(ST_Collect(gis_point::geometry))::geography) / 1000000.0)::numeric, 2)
+        )
+    )
+    INTO v_result
+    FROM reports.location_info
+    WHERE loc_name = p_callsign;
+    
+    RETURN COALESCE(v_result, '{}'::jsonb);
+END;
+"""
+  returnType = jsonb
+  arguments = <
+    {
+      name = p_callsign
+      type = text
+      mode = IN
+      default = 'KC1KCE-8'::text
+    }
+
+  >
+  language = plpgsql
+  owner = postgres
+  comment = Returns convex hull (coverage area) as GeoJSON
+}
+

@@ -1,0 +1,87 @@
+procedure "reports"."upsert_location(numeric, numeric, text, text, text, numeric, text)" {
+  text = """
+
+BEGIN
+    INSERT INTO reports.location_lookup (
+        center_point,
+        lat,
+        lon,
+        city,
+        state,
+        country,
+        radius_km,
+        last_geocoded,
+        geocode_source
+    )
+    VALUES (
+        ST_SetSRID(ST_MakePoint(p_lon, p_lat), 4326),
+        p_lat,
+        p_lon,
+        p_city,
+        p_state,
+        p_country,
+        p_radius_km,
+        NOW(),
+        p_source
+    )
+    ON CONFLICT (lat, lon) DO UPDATE
+    SET 
+        city = EXCLUDED.city,
+        state = EXCLUDED.state,
+        country = EXCLUDED.country,
+        last_geocoded = NOW(),
+        geocode_source = EXCLUDED.geocode_source;
+END;
+"""
+  arguments = <
+    {
+      name = p_lat
+      type = numeric
+      mode = IN
+    }
+
+    {
+      name = p_lon
+      type = numeric
+      mode = IN
+    }
+
+    {
+      name = p_city
+      type = text
+      mode = IN
+    }
+
+    {
+      name = p_state
+      type = text
+      mode = IN
+    }
+
+    {
+      name = p_country
+      type = text
+      mode = IN
+      default = 'USA'::text
+    }
+
+    {
+      name = p_radius_km
+      type = numeric
+      mode = IN
+      default = 5.0
+    }
+
+    {
+      name = p_source
+      type = text
+      mode = IN
+      default = 'nominatim'::text
+    }
+
+  >
+  language = plpgsql
+  owner = postgres
+  comment = Insert or update a geocoded location
+}
+

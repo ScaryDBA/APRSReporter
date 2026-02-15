@@ -1,0 +1,29 @@
+function "reports"."get_journey_stats_json()" {
+  text = """
+
+    SELECT COALESCE(
+        json_agg(row_to_json(t) ORDER BY journey_date DESC),
+        '[]'::json
+    )
+    FROM (
+        SELECT 
+            journey_date,
+            total_distance_km,
+            max_speed_kmh,
+            total_moving_time,
+            unique_locations,
+            first_transmission,
+            last_transmission
+        FROM reports.journey_stats
+        ORDER BY journey_date DESC
+    ) t;
+"""
+  returnType = json
+  arguments = [
+  ]
+  language = sql
+  volatility = STABLE
+  owner = postgres
+  comment = Returns journey statistics as JSON array
+}
+

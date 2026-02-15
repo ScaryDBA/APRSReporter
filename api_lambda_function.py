@@ -1,8 +1,7 @@
 import json
 import psycopg2
-import os
 import boto3
-from datetime import datetime, date
+from datetime import date
 
 SECRET_NAME = "aprs-db-secret"
 secrets_client = boto3.client('secretsmanager')
@@ -26,11 +25,7 @@ def get_db_connection():
 
 def lambda_handler(event, context):
     """
-    API Gateway endpoints:
-    GET /points - Get all position points as GeoJSON
-    GET /route - Get route track as GeoJSON LineString
-    GET /stats - Get journey statistics
-    GET /query/{type} - Run predefined spatial queries
+    API Gateway endpoints - all logic is in PostgreSQL functions
     """
     
     # CORS headers
@@ -45,236 +40,82 @@ def lambda_handler(event, context):
     if event.get('httpMethod') == 'OPTIONS':
         return {'statusCode': 200, 'headers': headers, 'body': ''}
     
-    # Get path from either 'path' or 'resource' field
-    # API Gateway Test uses 'resource', deployed stage uses 'path'
+    # Get path and strip stage name if present
     raw_path = event.get('path') or event.get('resource', '')
-    path = raw_path
-    
-    # Remove stage name if present (for deployed URLs)
-    if path.startswith('/aprs_reporter'):
-        path = path[len('/aprs_reporter'):]
+    path = raw_path[len('/aprs_reporter'):] if raw_path.startswith('/aprs_reporter') else raw_path
     
     query_params = event.get('queryStringParameters') or {}
     
-    # Debug: return the raw event to see what we're receiving
-    print(f"Event keys: {event.keys()}, Raw path: {raw_path}, Processed path: {path}")
+    print(f"Request: {path}, params: {query_params}")
     
     try:
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Route: Get all points as GeoJSON
+        # Route to appropriate database function
         if path == '/points':
+            # Get points with optional date filter
             date_filter = query_params.get('date')
-            
             if date_filter:
-                # Filter by specific date
-                cur.execute("""
-                    SELECT jsonb_build_object(
-                        'type', 'FeatureCollection',
-                        'features', jsonb_agg(
-                            jsonb_build_object(
-                                'type', 'Feature',
-                                'geometry', ST_AsGeoJSON(gis_point::geometry)::jsonb,
-                                'properties', jsonb_build_object(
-                                    'time', lasttime,
-                                    'speed', speed,
-                                    'altitude', altitude,
-                                    'course', course
-                                )
-                            )
-                            ORDER BY lasttime
-                        )
-                    )
-                    FROM reports.location_info
-                    WHERE loc_name = 'KC1KCE-8'
-                      AND DATE(lasttime) = %s
-                """, (date_filter,))
+                cur.execute("SELECT reports.get_points_geojson('KC1KCE-8', %s)", (date_filter,))
             else:
-                # Get all points
-                cur.execute("""
-                    SELECT jsonb_build_object(
-                        'type', 'FeatureCollection',
-                        'features', jsonb_agg(
-                            jsonb_build_object(
-                                'type', 'Feature',
-                                'geometry', ST_AsGeoJSON(gis_point::geometry)::jsonb,
-                                'properties', jsonb_build_object(
-                                    'time', lasttime,
-                                    'speed', speed,
-                                    'altitude', altitude,
-                                    'course', course
-                                )
-                            )
-                            ORDER BY lasttime
-                        )
-                    )
-                    FROM reports.location_info
-                    WHERE loc_name = 'KC1KCE-8'
-                """)
-            result = cur.fetchone()
-            body = result[0] if result else {'type': 'FeatureCollection', 'features': []}
+                cur.execute("SELECT reports.get_points_geojson('KC1KCE-8', NULL)")
+            body = cur.fetchone()[0]
         
-        # Route: Get track as LineString
         elif path == '/route':
-            date_filter = query_params.get('date', date.today().isoformat())
-            cur.execute("""
-                SELECT jsonb_build_object(
-                    'type', 'FeatureCollection',
-                    'features', jsonb_agg(
-                        jsonb_build_object(
-                            'type', 'Feature',
-                            'geometry', ST_AsGeoJSON(route_line::geometry)::jsonb,
-                            'properties', jsonb_build_object(
-                                'date', track_date,
-                                'points', point_count,
-                                'distance_km', total_km
-                            )
-                        )
-                    )
-                )
-                FROM reports.route_track
-                WHERE track_date = %s
-            """, (date_filter,))
-            result = cur.fetchone()
-            body = result[0] if result else {'type': 'FeatureCollection', 'features': []}
+            # Get route for specific date (default today)
+            route_date = query_params.get('date', date.today().isoformat())
+            cur.execute("SELECT reports.get_route_geojson(%s)", (route_date,))
+            body = cur.fetchone()[0]
         
-        # Route: Get all routes (all dates)
         elif path == '/routes':
-            cur.execute("""
-                SELECT jsonb_build_object(
-                    'type', 'FeatureCollection',
-                    'features', jsonb_agg(
-                        jsonb_build_object(
-                            'type', 'Feature',
-                            'geometry', ST_AsGeoJSON(route_line::geometry)::jsonb,
-                            'properties', jsonb_build_object(
-                                'date', track_date,
-                                'points', point_count,
-                                'distance_km', total_km
-                            )
-                        )
-                    )
-                )
-                FROM reports.route_track
-            """)
-            result = cur.fetchone()
-            body = result[0] if result else {'type': 'FeatureCollection', 'features': []}
+            # Get all routes
+            cur.execute("SELECT reports.get_all_routes_geojson()")
+            body = cur.fetchone()[0]
         
-        # Route: Get journey stats
         elif path == '/stats':
-            cur.execute("""
-                SELECT json_agg(row_to_json(t))
-                FROM (
-                    SELECT 
-                        journey_date,
-                        total_distance_km,
-                        max_speed_kmh,
-                        total_moving_time,
-                        unique_locations,
-                        first_transmission,
-                        last_transmission
-                    FROM reports.journey_stats
-                    ORDER BY journey_date DESC
-                ) t
-            """)
-            result = cur.fetchone()
-            body = result[0] if result else []
+            # Get journey statistics
+            cur.execute("SELECT reports.get_journey_stats_json()")
+            body = cur.fetchone()[0]
         
-        # Route: Get distinct locations visited
         elif path == '/locations':
-            cur.execute("""
-                SELECT json_agg(row_to_json(t))
-                FROM (
-                    SELECT 
-                        city,
-                        state,
-                        country,
-                        visit_count,
-                        first_visit,
-                        last_visit
-                    FROM reports.locations_visited
-                    ORDER BY visit_count DESC, city
-                ) t
-            """)
-            result = cur.fetchone()
-            body = result[0] if result else []
+            # Get visited locations
+            cur.execute("SELECT reports.get_locations_json()")
+            body = cur.fetchone()[0]
         
-        # Route: Spatial queries
         elif path.startswith('/query/'):
+            # Spatial queries
             query_type = path.split('/')[-1]
             
             if query_type == 'bounding-box':
-                # Get the bounding box of all positions
-                cur.execute("""
-                    SELECT jsonb_build_object(
-                        'type', 'Feature',
-                        'geometry', ST_AsGeoJSON(ST_Envelope(ST_Collect(gis_point::geometry)))::jsonb,
-                        'properties', jsonb_build_object(
-                            'description', 'Coverage area bounding box'
-                        )
-                    )
-                    FROM reports.location_info
-                    WHERE loc_name = 'KC1KCE-8'
-                """)
-                result = cur.fetchone()
-                body = result[0] if result else {}
+                cur.execute("SELECT reports.get_bounding_box_geojson('KC1KCE-8')")
+                body = cur.fetchone()[0]
             
             elif query_type == 'convex-hull':
-                # Get convex hull (coverage area)
-                cur.execute("""
-                    SELECT jsonb_build_object(
-                        'type', 'Feature',
-                        'geometry', ST_AsGeoJSON(ST_ConvexHull(ST_Collect(gis_point::geometry)))::jsonb,
-                        'properties', jsonb_build_object(
-                            'description', 'Coverage area (convex hull)',
-                            'area_km2', ROUND((ST_Area(ST_ConvexHull(ST_Collect(gis_point::geometry))::geography) / 1000000.0)::numeric, 2)
-                        )
-                    )
-                    FROM reports.location_info
-                    WHERE loc_name = 'KC1KCE-8'
-                """)
-                result = cur.fetchone()
-                body = result[0] if result else {}
+                cur.execute("SELECT reports.get_convex_hull_geojson('KC1KCE-8')")
+                body = cur.fetchone()[0]
             
             elif query_type == 'extremes':
-                # Get northernmost, southernmost, easternmost, westernmost points
-                cur.execute("""
-                    SELECT json_build_object(
-                        'northernmost', (SELECT row_to_json(t) FROM (
-                            SELECT lasttime, lat, lon, ST_Y(gis_point::geometry) as latitude
-                            FROM reports.location_info
-                            WHERE loc_name = 'KC1KCE-8'
-                            ORDER BY ST_Y(gis_point::geometry) DESC LIMIT 1
-                        ) t),
-                        'southernmost', (SELECT row_to_json(t) FROM (
-                            SELECT lasttime, lat, lon, ST_Y(gis_point::geometry) as latitude
-                            FROM reports.location_info
-                            WHERE loc_name = 'KC1KCE-8'
-                            ORDER BY ST_Y(gis_point::geometry) ASC LIMIT 1
-                        ) t),
-                        'easternmost', (SELECT row_to_json(t) FROM (
-                            SELECT lasttime, lat, lon, ST_X(gis_point::geometry) as longitude
-                            FROM reports.location_info
-                            WHERE loc_name = 'KC1KCE-8'
-                            ORDER BY ST_X(gis_point::geometry) DESC LIMIT 1
-                        ) t),
-                        'westernmost', (SELECT row_to_json(t) FROM (
-                            SELECT lasttime, lat, lon, ST_X(gis_point::geometry) as longitude
-                            FROM reports.location_info
-                            WHERE loc_name = 'KC1KCE-8'
-                            ORDER BY ST_X(gis_point::geometry) ASC LIMIT 1
-                        ) t)
-                    )
-                """)
-                result = cur.fetchone()
-                body = result[0] if result else {}
+                cur.execute("SELECT reports.get_extreme_points_json('KC1KCE-8')")
+                body = cur.fetchone()[0]
             
             else:
                 body = {'error': 'Unknown query type'}
         
         else:
-            body = {'error': 'Unknown endpoint', 'available': ['/points', '/route', '/routes', '/stats', '/query/{type}']}
+            body = {
+                'error': 'Unknown endpoint',
+                'available': [
+                    '/points',
+                    '/route',
+                    '/routes',
+                    '/stats',
+                    '/locations',
+                    '/query/bounding-box',
+                    '/query/convex-hull',
+                    '/query/extremes'
+                ]
+            }
         
         cur.close()
         conn.close()
@@ -286,6 +127,7 @@ def lambda_handler(event, context):
         }
     
     except Exception as e:
+        print(f"Error: {str(e)}")
         return {
             'statusCode': 500,
             'headers': headers,

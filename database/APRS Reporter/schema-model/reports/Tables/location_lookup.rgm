@@ -1,0 +1,91 @@
+table "reports"."location_lookup" {
+  primaryKey = {
+    columns = [
+      "location_id"
+    ]
+    name = "location_lookup_pkey"
+    objectType = primaryKey
+  }
+  owner = postgres
+  comment = Cache of reverse geocoded locations for coordinate clustering
+  columns = (
+    column "location_id" {
+      type = bigint
+      null = NOT NULL
+      generatedAsIdentity = ALWAYS
+    }
+    column "center_point" {
+      type = public.geography(Point,4326)
+      null = NOT NULL
+    }
+    column "lat" {
+      type = numeric(9,5)
+      null = NOT NULL
+    }
+    column "lon" {
+      type = numeric(10,5)
+      null = NOT NULL
+    }
+    column "city" {
+      type = text
+    }
+    column "state" {
+      type = text
+    }
+    column "country" {
+      type = text
+      null = NOT NULL
+      default = 'USA'::text
+    }
+    column "radius_km" {
+      type = numeric(6,2)
+      default = 5.0
+      comment = Radius in km to cluster nearby points into this location
+    }
+    column "point_count" {
+      type = integer
+      default = 0
+    }
+    column "first_seen" {
+      type = timestamp with time zone
+      default = now()
+    }
+    column "last_geocoded" {
+      type = timestamp with time zone
+    }
+    column "geocode_source" {
+      type = text
+      default = 'manual'::text
+    }
+  )
+}
+
+index "reports"."idx_location_lookup_point" {
+  table = "reports"."location_lookup"
+  type = gist
+  columns = <
+    {
+      definition = center_point
+    }
+
+  >
+  isUnique = False
+}
+
+index "reports"."unique_location" {
+  table = "reports"."location_lookup"
+  type = btree
+  columns = <
+    {
+      definition = lat
+    }
+
+    {
+      definition = lon
+    }
+
+  >
+  isUnique = True
+  isConstraint = true
+}
+

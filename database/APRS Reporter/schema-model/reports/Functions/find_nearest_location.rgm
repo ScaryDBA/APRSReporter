@@ -1,0 +1,45 @@
+function "reports"."find_nearest_location(numeric, numeric, numeric)" {
+  text = """
+
+DECLARE
+    v_location_id bigint;
+    v_point geography;
+BEGIN
+    v_point := ST_SetSRID(ST_MakePoint(p_lon, p_lat), 4326);
+    
+    -- Find the nearest location within radius
+    SELECT location_id INTO v_location_id
+    FROM reports.location_lookup
+    WHERE ST_DWithin(center_point, v_point, p_radius_km * 1000)
+    ORDER BY ST_Distance(center_point, v_point)
+    LIMIT 1;
+    
+    RETURN v_location_id;
+END;
+"""
+  returnType = bigint
+  arguments = <
+    {
+      name = p_lat
+      type = numeric
+      mode = IN
+    }
+
+    {
+      name = p_lon
+      type = numeric
+      mode = IN
+    }
+
+    {
+      name = p_radius_km
+      type = numeric
+      mode = IN
+      default = 5.0
+    }
+
+  >
+  language = plpgsql
+  owner = postgres
+}
+

@@ -1,0 +1,76 @@
+function "reports"."get_points_geojson(text, date)" {
+  text = """
+
+DECLARE
+    v_result jsonb;
+BEGIN
+    IF p_date IS NOT NULL THEN
+        -- Filter by specific date
+        SELECT jsonb_build_object(
+            'type', 'FeatureCollection',
+            'features', jsonb_agg(
+                jsonb_build_object(
+                    'type', 'Feature',
+                    'geometry', ST_AsGeoJSON(gis_point::geometry)::jsonb,
+                    'properties', jsonb_build_object(
+                        'time', lasttime,
+                        'speed', speed,
+                        'altitude', altitude,
+                        'course', course
+                    )
+                )
+                ORDER BY lasttime
+            )
+        )
+        INTO v_result
+        FROM reports.location_info
+        WHERE loc_name = p_callsign
+          AND DATE(lasttime) = p_date;
+    ELSE
+        -- Get all points
+        SELECT jsonb_build_object(
+            'type', 'FeatureCollection',
+            'features', jsonb_agg(
+                jsonb_build_object(
+                    'type', 'Feature',
+                    'geometry', ST_AsGeoJSON(gis_point::geometry)::jsonb,
+                    'properties', jsonb_build_object(
+                        'time', lasttime,
+                        'speed', speed,
+                        'altitude', altitude,
+                        'course', course
+                    )
+                )
+                ORDER BY lasttime
+            )
+        )
+        INTO v_result
+        FROM reports.location_info
+        WHERE loc_name = p_callsign;
+    END IF;
+    
+    RETURN COALESCE(v_result, '{"type": "FeatureCollection", "features": []}'::jsonb);
+END;
+"""
+  returnType = jsonb
+  arguments = <
+    {
+      name = p_callsign
+      type = text
+      mode = IN
+      default = 'KC1KCE-8'::text
+    }
+
+    {
+      name = p_date
+      type = date
+      mode = IN
+      default = NULL::date
+    }
+
+  >
+  language = plpgsql
+  owner = postgres
+  comment = Returns all position points as GeoJSON FeatureCollection, optionally filtered by date
+}
+
