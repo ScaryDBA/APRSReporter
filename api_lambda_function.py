@@ -78,9 +78,9 @@ def lambda_handler(event, context):
                                 'geometry', ST_AsGeoJSON(gis_point::geometry)::jsonb,
                                 'properties', jsonb_build_object(
                                     'time', lasttime,
-                                    'speed', actual_speed_kmh,
+                                    'speed', speed,
                                     'altitude', altitude,
-                                    'distance', distance_from_previous
+                                    'course', course
                                 )
                             )
                             ORDER BY lasttime
@@ -90,15 +90,30 @@ def lambda_handler(event, context):
                     WHERE loc_name = 'KC1KCE-8'
                       AND DATE(lasttime) = %s
                 """, (date_filter,))
-                result = cur.fetchone()
-                body = result[0] if result else {'type': 'FeatureCollection', 'features': []}
             else:
                 # Get all points
                 cur.execute("""
-                    SELECT geojson FROM reports.points_geojson
+                    SELECT jsonb_build_object(
+                        'type', 'FeatureCollection',
+                        'features', jsonb_agg(
+                            jsonb_build_object(
+                                'type', 'Feature',
+                                'geometry', ST_AsGeoJSON(gis_point::geometry)::jsonb,
+                                'properties', jsonb_build_object(
+                                    'time', lasttime,
+                                    'speed', speed,
+                                    'altitude', altitude,
+                                    'course', course
+                                )
+                            )
+                            ORDER BY lasttime
+                        )
+                    )
+                    FROM reports.location_info
+                    WHERE loc_name = 'KC1KCE-8'
                 """)
-                result = cur.fetchone()
-                body = result[0] if result else {'type': 'FeatureCollection', 'features': []}
+            result = cur.fetchone()
+            body = result[0] if result else {'type': 'FeatureCollection', 'features': []}
         
         # Route: Get track as LineString
         elif path == '/route':
@@ -162,6 +177,24 @@ def lambda_handler(event, context):
                     FROM reports.journey_stats
                     ORDER BY journey_date DESC
                 ) t
+            """)
+            result = cur.fetchone()
+            body = result[0] if result else []
+        
+        # Route: Get distinct locations visited
+        elif path == '/locations':
+            cur.execute("""
+                SELECT json_agg(location_data)
+                FROM (
+                    SELECT DISTINCT
+                        COALESCE(loc_comment, 'No comment') as city,
+                        COALESCE(status, '') as state,
+                        'USA' as country
+                    FROM reports.location_info
+                    WHERE loc_name = 'KC1KCE-8'
+                    ORDER BY COALESCE(loc_comment, 'No comment')
+                    LIMIT 50
+                ) location_data
             """)
             result = cur.fetchone()
             body = result[0] if result else []

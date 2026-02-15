@@ -239,12 +239,18 @@ function updateStats(data) {
     
     let totalDistance = 0;
     let maxSpeed = 0;
+    let minAltitude = Infinity;
+    let maxAltitude = -Infinity;
     let lastUpdate = null;
     
     features.forEach(f => {
         const props = f.properties;
         if (props.distance) totalDistance += parseFloat(props.distance);
         if (props.speed && props.speed > maxSpeed) maxSpeed = props.speed;
+        if (props.altitude != null) {
+            if (props.altitude < minAltitude) minAltitude = props.altitude;
+            if (props.altitude > maxAltitude) maxAltitude = props.altitude;
+        }
         if (props.time) {
             const time = new Date(props.time);
             if (!lastUpdate || time > lastUpdate) lastUpdate = time;
@@ -253,6 +259,8 @@ function updateStats(data) {
     
     document.getElementById('statDistance').textContent = totalDistance.toFixed(2) + ' km';
     document.getElementById('statMaxSpeed').textContent = maxSpeed.toFixed(1) + ' km/h';
+    document.getElementById('statMinAlt').textContent = minAltitude !== Infinity ? minAltitude.toFixed(1) + ' m' : '-';
+    document.getElementById('statMaxAlt').textContent = maxAltitude !== -Infinity ? maxAltitude.toFixed(1) + ' m' : '-';
     document.getElementById('statLastUpdate').textContent = lastUpdate ? 
         lastUpdate.toLocaleString() : '-';
 }
@@ -319,5 +327,52 @@ document.getElementById('btnClearFilter').addEventListener('click', () => {
         showPoints();
     }
 });
+
+// Locations expandable section
+document.getElementById('locationsHeader').addEventListener('click', () => {
+    const content = document.getElementById('locationsContent');
+    const toggle = document.getElementById('locationsToggle');
+    
+    content.classList.toggle('expanded');
+    toggle.classList.toggle('expanded');
+    
+    // Load locations if not already loaded
+    if (content.classList.contains('expanded') && !content.dataset.loaded) {
+        loadLocations();
+    }
+});
+
+// Load locations data
+async function loadLocations() {
+    const content = document.getElementById('locationsContent');
+    const grid = document.getElementById('locationsGrid');
+    
+    const data = await fetchData('/locations');
+    if (!data || !data.length) {
+        grid.innerHTML = '<div style="text-align: center; padding: 2rem; color: #7f8c8d;">No location data available</div>';
+        return;
+    }
+    
+    grid.innerHTML = '';
+    data.forEach(loc => {
+        const item = document.createElement('div');
+        item.className = 'location-item';
+        
+        const cityDiv = document.createElement('div');
+        cityDiv.className = 'city';
+        cityDiv.textContent = loc.city || 'Unknown City';
+        
+        const regionDiv = document.createElement('div');
+        regionDiv.className = 'region';
+        regionDiv.textContent = [loc.state, loc.country].filter(Boolean).join(', ') || 'Unknown Region';
+        
+        item.appendChild(cityDiv);
+        item.appendChild(regionDiv);
+        grid.appendChild(item);
+    });
+    
+    content.dataset.loaded = 'true';
+}
+
 // Initial load
 showPoints();

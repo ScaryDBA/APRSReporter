@@ -166,6 +166,73 @@
                 max-width: 100%;
             }
         }
+        
+        .locations-section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .locations-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .locations-header h3 {
+            color: #2c3e50;
+            font-size: 1.2rem;
+            margin: 0;
+        }
+        
+        .locations-toggle {
+            font-size: 1.5rem;
+            color: #7f8c8d;
+            transition: transform 0.3s;
+        }
+        
+        .locations-toggle.expanded {
+            transform: rotate(180deg);
+        }
+        
+        .locations-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        
+        .locations-content.expanded {
+            max-height: 600px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+        
+        .locations-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 0.5rem;
+        }
+        
+        .location-item {
+            padding: 0.75rem;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 3px solid #3498db;
+        }
+        
+        .location-item .city {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .location-item .region {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
@@ -204,8 +271,28 @@
                 <div class="value" id="statMaxSpeed">- km/h</div>
             </div>
             <div class="stat-card">
+                <h3>Min Altitude</h3>
+                <div class="value" id="statMinAlt">- m</div>
+            </div>
+            <div class="stat-card">
+                <h3>Max Altitude</h3>
+                <div class="value" id="statMaxAlt">- m</div>
+            </div>
+            <div class="stat-card">
                 <h3>Last Update</h3>
                 <div class="value" id="statLastUpdate">-</div>
+            </div>
+        </div>
+        
+        <div class="locations-section">
+            <div class="locations-header" id="locationsHeader">
+                <h3>Locations Visited</h3>
+                <span class="locations-toggle" id="locationsToggle">▼</span>
+            </div>
+            <div class="locations-content" id="locationsContent">
+                <div class="locations-grid" id="locationsGrid">
+                    <div style="text-align: center; padding: 2rem; color: #7f8c8d;">Loading locations...</div>
+                </div>
             </div>
         </div>
         
@@ -213,7 +300,8 @@
             <img src="images/maverick-radio.webp" alt="BridgeCom Systems Maverick Transceiver" onerror="this.style.display='none'">
             <div class="about-content">
                 <h2>About This Project</h2>
-                <p>This web page is a project to demonstrate the operations of the BridgeCom Systems Maverick transceiver. It's also a demonstration of AWS Lambda Functions, PostgreSQL running on AWS Aurora, and the PostGIS Global Information Systems extension. The whole thing was built using Claude AI.</p>
+                <p>This web page is a project to demonstrate the operations of the <a href="https://www.bridgecomsystems.com/products/bridgecom-maverick-dual-band-dmr-analog-ham-radio?utm_source=HomePageBanner&utm_medium=Website" target="_blank" style="color: #3498db; text-decoration: none;">BridgeCom Systems</a> Maverick transceiver. It's also a demonstration of AWS Lambda Functions, PostgreSQL running on AWS Aurora, and the PostGIS Global Information Systems extension. The whole thing was built using Claude AI.</p>
+                <p>If you have suggestions, please contact me at <a href="mailto:grant@scarydba.com" style="color: #3498db; text-decoration: none;">grant@scarydba.com</a>.</p>
             </div>
         </div>
     </div>
