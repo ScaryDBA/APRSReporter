@@ -5,20 +5,36 @@ from datetime import date
 
 SECRET_NAME = "aprs-db-secret"
 secrets_client = boto3.client('secretsmanager')
+ssm_client = boto3.client('ssm')
 
-DB_HOST = "aprs-instance-1.c2ek9ilzyxhz.us-east-1.rds.amazonaws.com"
-DB_NAME = "aprs_reporter"
+# Configuration loaded from Parameter Store
+def get_config():
+    """Get configuration from AWS Parameter Store and Secrets Manager"""
+    params = ssm_client.get_parameters(
+        Names=['/aprs/db-host', '/aprs/db-name']
+    )
+    config = {p['Name'].split('/')[-1]: p['Value'] for p in params['Parameters']}
+    
+    secret = secrets_client.get_secret_value(SecretId=SECRET_NAME)
+    secret_dict = json.loads(secret['SecretString'])
+    
+    return {
+        'db_host': config['db-host'],
+        'db_name': config['db-name'],
+        'db_username': secret_dict['username'],
+        'db_password': secret_dict['password']
+    }
+
+# Cache config at module level
+CONFIG = get_config()
 
 def get_db_connection():
-    """Get database connection with credentials from Secrets Manager"""
-    secret_response = secrets_client.get_secret_value(SecretId=SECRET_NAME)
-    secret_dict = json.loads(secret_response['SecretString'])
-    
+    """Get database connection with credentials from config"""
     return psycopg2.connect(
-        host=DB_HOST,
-        database=DB_NAME,
-        user=secret_dict['username'],
-        password=secret_dict['password'],
+        host=CONFIG['db_host'],
+        database=CONFIG['db_name'],
+        user=CONFIG['db_username'],
+        password=CONFIG['db_password'],
         sslmode='require',
         connect_timeout=10
     )
