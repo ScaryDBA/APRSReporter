@@ -184,17 +184,18 @@ def lambda_handler(event, context):
         # Route: Get distinct locations visited
         elif path == '/locations':
             cur.execute("""
-                SELECT json_agg(location_data)
+                SELECT json_agg(row_to_json(t))
                 FROM (
-                    SELECT DISTINCT
-                        COALESCE(loc_comment, 'No comment') as city,
-                        COALESCE(status, '') as state,
-                        'USA' as country
-                    FROM reports.location_info
-                    WHERE loc_name = 'KC1KCE-8'
-                    ORDER BY COALESCE(loc_comment, 'No comment')
-                    LIMIT 50
-                ) location_data
+                    SELECT 
+                        city,
+                        state,
+                        country,
+                        visit_count,
+                        first_visit,
+                        last_visit
+                    FROM reports.locations_visited
+                    ORDER BY visit_count DESC, city
+                ) t
             """)
             result = cur.fetchone()
             body = result[0] if result else []

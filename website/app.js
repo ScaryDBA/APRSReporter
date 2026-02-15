@@ -366,6 +366,14 @@ async function loadLocations() {
         regionDiv.className = 'region';
         regionDiv.textContent = [loc.state, loc.country].filter(Boolean).join(', ') || 'Unknown Region';
         
+        // Add visit count if available
+        if (loc.visit_count) {
+            const countDiv = document.createElement('div');
+            countDiv.className = 'visit-count';
+            countDiv.textContent = `${loc.visit_count} visit${loc.visit_count !== 1 ? 's' : ''}`;
+            item.appendChild(countDiv);
+        }
+        
         item.appendChild(cityDiv);
         item.appendChild(regionDiv);
         grid.appendChild(item);
