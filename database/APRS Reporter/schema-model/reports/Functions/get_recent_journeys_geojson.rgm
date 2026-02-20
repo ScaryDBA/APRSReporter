@@ -1,0 +1,133 @@
+function "reports"."get_recent_journeys_geojson(text, integer, numeric, date)" {
+  text = """
+
+DECLARE
+    v_result jsonb;
+BEGIN
+    SELECT jsonb_build_object(
+        'type', 'FeatureCollection',
+        'features', jsonb_agg(
+            jsonb_build_object(
+                'type', 'Feature',
+                'geometry', ST_AsGeoJSON(route_line)::jsonb,
+                'properties', jsonb_build_object(
+                    'journey_id', journey_id,
+                    'start_time', start_time,
+                    'end_time', end_time,
+                    'points', points,
+                    'distance_km', distance_km,
+                    'max_speed_kmh', max_speed_kmh,
+                    'duration_minutes', ROUND(EXTRACT(EPOCH FROM (end_time - start_time)) / 60, 1)
+                )
+            )
+        )
+    )
+    INTO v_result
+    FROM (
+        SELECT * FROM reports.detect_journeys(p_callsign, p_gap_hours)
+        WHERE p_date IS NULL OR DATE(start_time) = p_date
+        ORDER BY start_time DESC
+        LIMIT p_limit
+    ) journeys;
+    
+    RETURN COALESCE(v_result, '{"type": "FeatureCollection", "features": []}'::jsonb);
+END;
+"""
+  returnType = jsonb
+  arguments = <
+    {
+      name = p_callsign
+      type = text
+      mode = IN
+      default = 'KC1KCE-8'::text
+    }
+
+    {
+      name = p_limit
+      type = integer
+      mode = IN
+      default = 10
+    }
+
+    {
+      name = p_gap_hours
+      type = numeric
+      mode = IN
+      default = 1.0
+    }
+
+    {
+      name = p_date
+      type = date
+      mode = IN
+      default = NULL::date
+    }
+
+  >
+  language = plpgsql
+  owner = gis_admin
+}
+
+function "reports"."get_recent_journeys_geojson(text, integer, numeric)" {
+  text = """
+
+DECLARE
+    v_result jsonb;
+BEGIN
+    SELECT jsonb_build_object(
+        'type', 'FeatureCollection',
+        'features', jsonb_agg(
+            jsonb_build_object(
+                'type', 'Feature',
+                'geometry', ST_AsGeoJSON(route_line)::jsonb,
+                'properties', jsonb_build_object(
+                    'journey_id', journey_id,
+                    'start_time', start_time,
+                    'end_time', end_time,
+                    'points', points,
+                    'distance_km', distance_km,
+                    'max_speed_kmh', max_speed_kmh,
+                    'duration_minutes', ROUND(EXTRACT(EPOCH FROM (end_time - start_time)) / 60, 1)
+                )
+            )
+        )
+    )
+    INTO v_result
+    FROM (
+        SELECT * FROM reports.detect_journeys(p_callsign, p_gap_hours)
+        ORDER BY start_time DESC
+        LIMIT p_limit
+    ) journeys;
+    
+    RETURN COALESCE(v_result, '{"type": "FeatureCollection", "features": []}'::jsonb);
+END;
+"""
+  returnType = jsonb
+  arguments = <
+    {
+      name = p_callsign
+      type = text
+      mode = IN
+      default = 'KC1KCE-8'::text
+    }
+
+    {
+      name = p_limit
+      type = integer
+      mode = IN
+      default = 10
+    }
+
+    {
+      name = p_gap_hours
+      type = numeric
+      mode = IN
+      default = 1.0
+    }
+
+  >
+  language = plpgsql
+  owner = gis_admin
+  comment = Returns recent journeys as GeoJSON FeatureCollection with route lines
+}
+

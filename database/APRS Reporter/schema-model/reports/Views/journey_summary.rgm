@@ -1,0 +1,43 @@
+view "reports"."journey_summary" {
+  text = """-
+SELECT journey_id,
+    start_time,
+    end_time,
+    points,
+    distance_km,
+    max_speed_kmh,
+    round((EXTRACT(epoch FROM (end_time - start_time)) / (60)::numeric), 1) AS duration_minutes,
+    date(start_time) AS journey_date
+   FROM reports.detect_journeys('KC1KCE-8'::text, 1.0) detect_journeys(journey_id, start_time, end_time, points, distance_km, max_speed_kmh, route_line)
+  ORDER BY start_time DESC;
+"""
+  owner = gis_admin
+  comment = Summary of all detected journeys with key metrics
+  columns = (
+    column "journey_id" {
+      type = integer
+    }
+    column "start_time" {
+      type = timestamp with time zone
+    }
+    column "end_time" {
+      type = timestamp with time zone
+    }
+    column "points" {
+      type = integer
+    }
+    column "distance_km" {
+      type = numeric
+    }
+    column "max_speed_kmh" {
+      type = numeric
+    }
+    column "duration_minutes" {
+      type = numeric
+    }
+    column "journey_date" {
+      type = date
+    }
+  )
+}
+

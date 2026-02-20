@@ -1,0 +1,82 @@
+function "reports"."get_journey_details_geojson(integer, text, numeric)" {
+  text = """
+
+DECLARE
+    v_result jsonb;
+BEGIN
+    WITH ordered_points AS (
+        SELECT 
+            location_info_id,
+            lasttime,
+            gis_point,
+            speed,
+            altitude,
+            LAG(lasttime) OVER (ORDER BY lasttime) as prev_time
+        FROM reports.location_info
+        WHERE loc_name = p_callsign
+        ORDER BY lasttime
+    ),
+    journey_breaks AS (
+        SELECT 
+            location_info_id,
+            lasttime,
+            gis_point,
+            speed,
+            altitude,
+            SUM(CASE 
+                WHEN prev_time IS NULL THEN 1
+                WHEN EXTRACT(EPOCH FROM (lasttime - prev_time)) > (p_gap_hours * 3600) THEN 1
+                ELSE 0
+            END) OVER (ORDER BY lasttime) as journey_num
+        FROM ordered_points
+    )
+    SELECT jsonb_build_object(
+        'type', 'FeatureCollection',
+        'features', jsonb_agg(
+            jsonb_build_object(
+                'type', 'Feature',
+                'geometry', ST_AsGeoJSON(gis_point::geometry)::jsonb,
+                'properties', jsonb_build_object(
+                    'time', lasttime,
+                    'speed', speed,
+                    'altitude', altitude
+                )
+            )
+            ORDER BY lasttime
+        )
+    )
+    INTO v_result
+    FROM journey_breaks
+    WHERE journey_num = p_journey_id;
+    
+    RETURN COALESCE(v_result, '{"type": "FeatureCollection", "features": []}'::jsonb);
+END;
+"""
+  returnType = jsonb
+  arguments = <
+    {
+      name = p_journey_id
+      type = integer
+      mode = IN
+    }
+
+    {
+      name = p_callsign
+      type = text
+      mode = IN
+      default = 'KC1KCE-8'::text
+    }
+
+    {
+      name = p_gap_hours
+      type = numeric
+      mode = IN
+      default = 1.0
+    }
+
+  >
+  language = plpgsql
+  owner = gis_admin
+  comment = Returns all points for a specific journey as GeoJSON
+}
+

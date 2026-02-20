@@ -38,10 +38,6 @@ This project showcases PostgreSQL/PostGIS capabilities for geographic informatio
 
 ## Quick Start
 
-See detailed setup guides:
-- [SCHEDULE_SETUP.md](SCHEDULE_SETUP.md) - EventBridge configuration
-- [GEOCODING_SETUP.md](GEOCODING_SETUP.md) - Reverse geocoding system
-
 ### Prerequisites
 - AWS Account with CLI configured
 - PostgreSQL client (psql)
@@ -51,13 +47,14 @@ See detailed setup guides:
 ### Setup Steps
 
 1. **Create Aurora PostgreSQL instance** (publicly accessible)
-2. **Run database scripts:**
-   ```bash
-   psql -h your-db.rds.amazonaws.com -U postgres -d aprs_reporter -f database/db_setup.sql
-   psql -h your-db.rds.amazonaws.com -U postgres -d aprs_reporter -f database/db_internals.sql
-   psql -h your-db.rds.amazonaws.com -U postgres -d aprs_reporter -f database/location_lookup_table.sql
-   psql -h your-db.rds.amazonaws.com -U postgres -d aprs_reporter -f database/api_functions.sql
-   ```
+
+2. **Deploy database schema using Flyway Desktop:**
+   - Download and install [Flyway Desktop](https://www.red-gate.com/products/flyway/desktop/)
+   - Open the Flyway project located in `database/APRS Reporter/`
+   - Configure your database connection in the Flyway Desktop UI
+   - Deploy the schema and migrations to your Aurora PostgreSQL instance
+   
+   The Flyway project includes all database objects: tables, functions, triggers, and views.
 
 3. **Create Lambda functions:** Deploy code from `lambda_function.py`, `api_lambda_function.py`, `geocoder_lambda_function.py`
 
@@ -85,10 +82,14 @@ Base URL: `https://your-api-id.execute-api.us-east-1.amazonaws.com/aprs_reporter
 ├── geocoder_lambda_function.py     # Reverse geocoding service
 ├── requirements.txt                # Python dependencies (psycopg2)
 ├── database/
-│   ├── db_setup.sql               # Schema and tables
-│   ├── db_internals.sql           # Triggers and procedures
-│   ├── location_lookup_table.sql  # Geocoding cache
-│   └── api_functions.sql          # Clean API endpoint functions
+│   ├── APRS Reporter/             # Flyway Desktop project
+│   │   ├── flyway.toml            # Flyway configuration
+│   │   ├── migrations/            # Database migration scripts
+│   │   └── schema-model/          # Schema model for deployment
+│   ├── db_setup.sql               # Legacy: Schema and tables
+│   ├── db_internals.sql           # Legacy: Triggers and procedures
+│   ├── location_lookup_table.sql  # Legacy: Geocoding cache
+│   └── api_functions.sql          # Legacy: API endpoint functions
 ├── website/                        # Static site (S3)
 │   ├── index.html
 │   ├── app.js

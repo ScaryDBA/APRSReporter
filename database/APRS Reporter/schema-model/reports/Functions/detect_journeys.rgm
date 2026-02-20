@@ -1,0 +1,78 @@
+function "reports"."detect_journeys(text, numeric)" {
+  text = """
+
+BEGIN
+    RETURN QUERY
+    WITH ordered_points AS (
+        SELECT 
+            location_info_id,
+            lasttime,
+            gis_point,
+            speed,
+            LAG(lasttime) OVER (ORDER BY lasttime) as prev_time
+        FROM reports.location_info
+        WHERE loc_name = p_callsign
+        ORDER BY lasttime
+    ),
+    journey_breaks AS (
+        SELECT 
+            location_info_id,
+            lasttime,
+            gis_point,
+            speed,
+            -- Start new journey if gap > threshold or it's the first point
+            SUM(CASE 
+                WHEN prev_time IS NULL THEN 1
+                WHEN EXTRACT(EPOCH FROM (lasttime - prev_time)) > (p_gap_hours * 3600) THEN 1
+                ELSE 0
+            END) OVER (ORDER BY lasttime) as journey_num
+        FROM ordered_points
+    ),
+    journey_distances AS (
+        SELECT 
+            journey_num,
+            lasttime,
+            gis_point,
+            speed,
+            ST_Distance(
+                gis_point::geography,
+                LAG(gis_point::geography) OVER (PARTITION BY journey_num ORDER BY lasttime)
+            ) as segment_distance
+        FROM journey_breaks
+    )
+    SELECT 
+        journey_num::int as journey_id,
+        MIN(lasttime) as start_time,
+        MAX(lasttime) as end_time,
+        COUNT(*)::int as points,
+        ROUND(COALESCE(SUM(segment_distance), 0)::numeric / 1000.0, 2) as distance_km,
+        ROUND(MAX(speed)::numeric, 2) as max_speed_kmh,
+        ST_MakeLine(gis_point::geometry ORDER BY lasttime) as route_line
+    FROM journey_distances
+    GROUP BY journey_num
+    HAVING COUNT(*) > 1  -- Only journeys with more than 1 point
+    ORDER BY start_time DESC;
+END;
+"""
+  returnType = TABLE(journey_id integer, start_time timestamp with time zone, end_time timestamp with time zone, points integer, distance_km numeric, max_speed_kmh numeric, route_line public.geometry)
+  arguments = <
+    {
+      name = p_callsign
+      type = text
+      mode = IN
+      default = 'KC1KCE-8'::text
+    }
+
+    {
+      name = p_gap_hours
+      type = numeric
+      mode = IN
+      default = 1.0
+    }
+
+  >
+  language = plpgsql
+  owner = gis_admin
+  comment = Detects separate journeys by finding time gaps where device was stationary (default 1 hour gap)
+}
+

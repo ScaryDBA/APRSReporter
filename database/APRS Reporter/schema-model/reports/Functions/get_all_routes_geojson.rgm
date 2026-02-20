@@ -1,27 +1,9 @@
 function "reports"."get_all_routes_geojson()" {
   text = """
 
-DECLARE
-    v_result jsonb;
 BEGIN
-    SELECT jsonb_build_object(
-        'type', 'FeatureCollection',
-        'features', jsonb_agg(
-            jsonb_build_object(
-                'type', 'Feature',
-                'geometry', ST_AsGeoJSON(route_line::geometry)::jsonb,
-                'properties', jsonb_build_object(
-                    'date', track_date,
-                    'points', point_count,
-                    'distance_km', total_km
-                )
-            )
-        )
-    )
-    INTO v_result
-    FROM reports.route_track;
-    
-    RETURN COALESCE(v_result, '{"type": "FeatureCollection", "features": []}'::jsonb);
+    -- Use journey detection instead of date-based grouping
+    RETURN reports.get_recent_journeys_geojson('KC1KCE-8', 10, 1.0);
 END;
 """
   returnType = jsonb
@@ -29,6 +11,29 @@ END;
   ]
   language = plpgsql
   owner = postgres
-  comment = Returns all route tracks as GeoJSON FeatureCollection
+  comment = Returns recent journeys (uses journey detection with 1-hour gaps)
+}
+
+function "reports"."get_all_routes_geojson(date)" {
+  text = """
+
+BEGIN
+    -- Use journey detection instead of date-based grouping
+    -- Limit to 10 most recent journeys, optionally filtered by date
+    RETURN reports.get_recent_journeys_geojson('KC1KCE-8', 10, 1.0, p_date);
+END;
+"""
+  returnType = jsonb
+  arguments = <
+    {
+      name = p_date
+      type = date
+      mode = IN
+      default = NULL::date
+    }
+
+  >
+  language = plpgsql
+  owner = gis_admin
 }
 

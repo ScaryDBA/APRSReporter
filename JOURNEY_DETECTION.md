@@ -90,7 +90,12 @@ The gap threshold is configurable:
 
 ## Deployment Steps
 
-1. **Deploy SQL functions to database:**
+1. **Deploy SQL functions to database using Flyway Desktop:**
+   - Open the Flyway project at `database/APRS Reporter/`
+   - The journey detection functions are included in the schema model
+   - Deploy changes to your database through Flyway Desktop
+   
+   Alternatively, for quick updates during development:
    ```bash
    psql -h aprs-instance-1.c2ek9ilzyxhz.us-east-1.rds.amazonaws.com \
         -U gis_admin \
