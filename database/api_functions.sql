@@ -208,13 +208,14 @@ BEGIN
         'type', 'Feature',
         'geometry', ST_AsGeoJSON(ST_ConvexHull(ST_Collect(gis_point::geometry)))::jsonb,
         'properties', jsonb_build_object(
-            'description', 'Coverage area (convex hull)',
+            'description', '48 Hour Coverage Area',
             'area_km2', ROUND((ST_Area(ST_ConvexHull(ST_Collect(gis_point::geometry))::geography) / 1000000.0)::numeric, 2)
         )
     )
     INTO v_result
     FROM reports.location_info
-    WHERE loc_name = p_callsign;
+    WHERE loc_name = p_callsign
+      AND lasttime >= NOW() - INTERVAL '48 hours';
     
     RETURN COALESCE(v_result, '{}'::jsonb);
 END;
@@ -263,11 +264,11 @@ END;
 $$;
 
 -- Add comments for documentation
-COMMENT ON FUNCTION reports.get_points_geojson IS 'Returns all position points as GeoJSON FeatureCollection, optionally filtered by date';
-COMMENT ON FUNCTION reports.get_route_geojson IS 'Returns route track as GeoJSON LineString for a specific date';
-COMMENT ON FUNCTION reports.get_all_routes_geojson IS 'Returns all route tracks as GeoJSON FeatureCollection';
-COMMENT ON FUNCTION reports.get_journey_stats_json IS 'Returns journey statistics as JSON array';
-COMMENT ON FUNCTION reports.get_locations_json IS 'Returns visited locations with visit counts as JSON array';
-COMMENT ON FUNCTION reports.get_bounding_box_geojson IS 'Returns bounding box of all positions as GeoJSON';
-COMMENT ON FUNCTION reports.get_convex_hull_geojson IS 'Returns convex hull (coverage area) as GeoJSON';
-COMMENT ON FUNCTION reports.get_extreme_points_json IS 'Returns extreme points (northernmost, southernmost, easternmost, westernmost) as JSON';
+COMMENT ON FUNCTION reports.get_points_geojson(text, date) IS 'Returns all position points as GeoJSON FeatureCollection, optionally filtered by date';
+COMMENT ON FUNCTION reports.get_route_geojson(date) IS 'Returns route track as GeoJSON LineString for a specific date';
+COMMENT ON FUNCTION reports.get_all_routes_geojson() IS 'Returns all route tracks as GeoJSON FeatureCollection';
+COMMENT ON FUNCTION reports.get_journey_stats_json() IS 'Returns journey statistics as JSON array';
+COMMENT ON FUNCTION reports.get_locations_json() IS 'Returns visited locations with visit counts as JSON array';
+COMMENT ON FUNCTION reports.get_bounding_box_geojson(text) IS 'Returns bounding box of all positions as GeoJSON';
+COMMENT ON FUNCTION reports.get_convex_hull_geojson(text) IS 'Returns convex hull (48-hour coverage area) as GeoJSON';
+COMMENT ON FUNCTION reports.get_extreme_points_json(text) IS 'Returns extreme points (northernmost, southernmost, easternmost, westernmost) as JSON';

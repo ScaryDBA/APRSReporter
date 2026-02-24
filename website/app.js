@@ -387,7 +387,7 @@ async function loadLocations() {
         if (loc.visit_count) {
             const countDiv = document.createElement('div');
             countDiv.className = 'visit-count';
-            countDiv.textContent = `${loc.visit_count} visit${loc.visit_count !== 1 ? 's' : ''}`;
+            countDiv.textContent = `${loc.visit_count} point${loc.visit_count !== 1 ? 's' : ''}`;
             item.appendChild(countDiv);
         }
         
