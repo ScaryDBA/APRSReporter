@@ -1,14 +1,14 @@
 view "reports"."locations_visited" {
   text = """-
-SELECT DISTINCT ll.city,
+SELECT ll.city,
     ll.state,
     ll.country,
     count(DISTINCT li.location_info_id) AS visit_count,
     min(li.lasttime) AS first_visit,
     max(li.lasttime) AS last_visit
    FROM (reports.location_info li
-     LEFT JOIN reports.location_lookup ll ON (public.st_dwithin(ll.center_point, li.gis_point, ((ll.radius_km * (1000)::numeric))::double precision)))
-  WHERE ((li.loc_name = 'KC1KCE-8'::text) AND (ll.city IS NOT NULL))
+     JOIN reports.location_lookup ll ON (public.st_dwithin(ll.center_point, li.gis_point, ((ll.radius_km * (1000)::numeric))::double precision)))
+  WHERE (ll.city IS NOT NULL)
   GROUP BY ll.city, ll.state, ll.country
   ORDER BY (count(DISTINCT li.location_info_id)) DESC, ll.city;
 """

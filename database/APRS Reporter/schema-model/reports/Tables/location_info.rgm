@@ -99,6 +99,18 @@ table "reports"."location_info" {
   )
 }
 
+index "reports"."idx_location_info_gis_point" {
+  table = "reports"."location_info"
+  type = gist
+  columns = <
+    {
+      definition = gis_point
+    }
+
+  >
+  isUnique = False
+}
+
 index "reports"."unique_location_entry" {
   table = "reports"."location_info"
   type = btree
