@@ -1,6 +1,10 @@
-function "reports"."get_points_geojson(text, date)" {
-  text = """
-
+CREATE OR REPLACE FUNCTION reports.get_points_geojson(
+    p_callsign text DEFAULT 'KC1KCE-8',
+    p_date date DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+AS $$
 DECLARE
     v_result jsonb;
 BEGIN
@@ -78,29 +82,7 @@ BEGIN
             WHERE loc_name = p_callsign
         ) pts;
     END IF;
-    
+
     RETURN COALESCE(v_result, '{"type": "FeatureCollection", "features": []}'::jsonb);
 END;
-"""
-  returnType = jsonb
-  arguments = <
-    {
-      name = p_callsign
-      type = text
-      mode = IN
-      default = 'KC1KCE-8'::text
-    }
-
-    {
-      name = p_date
-      type = date
-      mode = IN
-      default = NULL::date
-    }
-
-  >
-  language = plpgsql
-  owner = postgres
-  comment = Returns all position points as GeoJSON FeatureCollection, optionally filtered by date
-}
-
+$$;
