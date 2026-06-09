@@ -131,4 +131,4 @@ Questions or suggestions? Email: grant@scarydba.com
 
 ---
 
-**Demonstrating:** AWS Lambda, PostgreSQL, PostGIS, serverless architecture, and Amateur Radio APRS
+**Demonstrating:** AWS Lambda, AWS Aurora,PostgreSQL, PostGIS, serverless architecture, and Amateur Radio APRS
