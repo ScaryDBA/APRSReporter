@@ -132,7 +132,11 @@ def lambda_handler(event, context):
             elif query_type == 'extremes':
                 cur.execute("SELECT reports.get_extreme_points_json('KC1KCE-8')")
                 body = cur.fetchone()[0]
-            
+
+            elif query_type == 'clusters':
+                cur.execute("SELECT reports.get_clusters_geojson('KC1KCE-8')")
+                body = cur.fetchone()[0]
+
             else:
                 body = {'error': 'Unknown query type'}
         
@@ -149,7 +153,8 @@ def lambda_handler(event, context):
                     '/locations',
                     '/query/bounding-box',
                     '/query/convex-hull',
-                    '/query/extremes'
+                    '/query/extremes',
+                    '/query/clusters'
                 ]
             }
         

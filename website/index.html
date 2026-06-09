@@ -127,7 +127,17 @@
             padding: 2rem;
             color: #7f8c8d;
         }
-        
+
+        /* Cluster id labels drawn at each hull's center */
+        .cluster-label {
+            background: rgba(255, 255, 255, 0.85);
+            border: none;
+            box-shadow: none;
+            padding: 1px 6px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
         .about {
             background: white;
             padding: 2rem;
@@ -253,6 +263,7 @@
             <button id="btnRoute">Show Route</button>
             <button id="btnCoverage">Show 48 Hour Coverage Area</button>
             <button id="btnExtremes">Show Extremes</button>
+            <button id="btnClusters">Show Clusters</button>
             <button id="btnRefresh">↻ Refresh Data</button>
             <div class="date-filter">
                 <label for="dateFilter">Filter by date:</label>

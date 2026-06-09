@@ -78,7 +78,7 @@ BEGIN
             WHERE loc_name = p_callsign
         ) pts;
     END IF;
-    
+
     RETURN COALESCE(v_result, '{"type": "FeatureCollection", "features": []}'::jsonb);
 END;
 """

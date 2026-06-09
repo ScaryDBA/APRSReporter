@@ -25,3 +25,7 @@ detectRenames = "identical-only"
 
 [redgateCompare.postgresql.options.ignores]
 ignoreNewlinesInTextObjects = "off"
+
+[environments.target1]
+url = "jdbc:postgresql://aprs-instance-1.c2ek9ilzyxhz.us-east-1.rds.amazonaws.com:5432/aprs_reporter"
+schemas = [ "public", "reports" ]

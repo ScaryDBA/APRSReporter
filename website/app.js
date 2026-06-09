@@ -15,6 +15,7 @@ let pointsLayer = L.layerGroup().addTo(map);
 let routeLayer = L.layerGroup();
 let coverageLayer = L.layerGroup();
 let extremesLayer = L.layerGroup();
+let clustersLayer = L.layerGroup();
 
 // Current view mode
 let currentMode = 'points';
@@ -242,6 +243,66 @@ async function showExtremes() {
     }
 }
 
+// Show clusters as convex-hull polygons (PostGIS ST_ClusterDBSCAN + ST_ConvexHull)
+async function showClusters() {
+    clearLayers();
+    currentMode = 'clusters';
+
+    const data = await fetchData('/query/clusters');
+    if (!data || !data.features) return;
+
+    // Distinct color per cluster id
+    const palette = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
+    const colorFor = (cluster) => palette[cluster % palette.length];
+
+    data.features.forEach(feature => {
+        const props = feature.properties;
+        const color = colorFor(props.cluster);
+
+        // Semi-transparent shaded convex hull around the group
+        const hull = L.geoJSON(feature, {
+            style: {
+                color: color,
+                weight: 2,
+                opacity: 0.9,
+                fillColor: color,
+                fillOpacity: 0.25
+            }
+        });
+        hull.bindPopup(`
+            <b>Cluster #${props.cluster}</b><br>
+            <b>Points:</b> ${props.point_count}
+        `);
+        clustersLayer.addLayer(hull);
+
+        // Identifying center point with a permanent label on the hull
+        if (props.center_lat != null && props.center_lon != null) {
+            const center = [props.center_lat, props.center_lon];
+            const centerMarker = L.circleMarker(center, {
+                radius: 5,
+                fillColor: color,
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 1
+            });
+            centerMarker.bindTooltip(`${props.cluster}`, {
+                permanent: true,
+                direction: 'center',
+                className: 'cluster-label'
+            });
+            clustersLayer.addLayer(centerMarker);
+        }
+    });
+
+    clustersLayer.addTo(map);
+
+    if (data.features.length > 0) {
+        const allBounds = L.geoJSON(data).getBounds();
+        if (allBounds.isValid()) map.fitBounds(allBounds, { padding: [50, 50] });
+    }
+}
+
 // Load statistics from the /stats endpoint (per-journey aggregates)
 async function loadStats() {
     const data = await fetchData('/stats');
@@ -278,9 +339,11 @@ function clearLayers() {
     routeLayer.remove();
     coverageLayer.remove();
     extremesLayer.remove();
+    clustersLayer.remove();
     routeLayer = L.layerGroup();
     coverageLayer = L.layerGroup();
     extremesLayer = L.layerGroup();
+    clustersLayer = L.layerGroup();
 }
 
 // Set active button
@@ -312,12 +375,18 @@ document.getElementById('btnExtremes').addEventListener('click', () => {
     showExtremes();
 });
 
+document.getElementById('btnClusters').addEventListener('click', () => {
+    setActiveButton('btnClusters');
+    showClusters();
+});
+
 document.getElementById('btnRefresh').addEventListener('click', () => {
     switch(currentMode) {
         case 'points': showPoints(); break;
         case 'route': showRoute(); break;
         case 'coverage': showCoverage(); break;
         case 'extremes': showExtremes(); break;
+        case 'clusters': showClusters(); break;
     }
     loadStats();
 });
