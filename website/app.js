@@ -308,8 +308,8 @@ document.getElementById('btnRoute').addEventListener('click', () => {
     showRoute();
 });
 
-document.getElementById('btnHeatmap').addEventListener('click', () => {
-    setActiveButton('btnHeatmap');
+document.getElementById('btnCoverage').addEventListener('click', () => {
+    setActiveButton('btnCoverage');
     showCoverage();
 });
 
