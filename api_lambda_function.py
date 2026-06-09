@@ -116,6 +116,11 @@ def lambda_handler(event, context):
             # Get visited locations
             cur.execute("SELECT reports.get_locations_json()")
             body = cur.fetchone()[0]
+
+        elif path == '/aurora':
+            # Get Aurora-specific status (versions, instance id, replica status, stat activity)
+            cur.execute("SELECT reports.get_aurora_status_json()")
+            body = cur.fetchone()[0]
         
         elif path.startswith('/query/'):
             # Spatial queries
@@ -151,6 +156,7 @@ def lambda_handler(event, context):
                     '/journey/{id}',
                     '/stats',
                     '/locations',
+                    '/aurora',
                     '/query/bounding-box',
                     '/query/convex-hull',
                     '/query/extremes',

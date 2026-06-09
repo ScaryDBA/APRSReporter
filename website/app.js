@@ -463,6 +463,102 @@ async function loadLocations() {
     content.dataset.loaded = 'true';
 }
 
+// Aurora expandable section
+document.getElementById('auroraHeader').addEventListener('click', () => {
+    const content = document.getElementById('auroraContent');
+    const toggle = document.getElementById('auroraToggle');
+
+    content.classList.toggle('expanded');
+    toggle.classList.toggle('expanded');
+
+    // Load Aurora status the first time the panel is opened
+    if (content.classList.contains('expanded') && !content.dataset.loaded) {
+        loadAurora();
+    }
+});
+
+// Escape text before injecting it into innerHTML (query text etc. is untrusted)
+function escapeHtml(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// Render an array of row objects (replica status, stat activity) as a table.
+// Handles the {error: ...} shape the DB function returns when a call is unavailable.
+function renderAuroraRows(rows) {
+    if (rows && !Array.isArray(rows) && rows.error) {
+        return `<div class="aurora-error">${escapeHtml(rows.error)}</div>`;
+    }
+    if (!Array.isArray(rows) || rows.length === 0) {
+        return '<div class="aurora-empty">No rows returned.</div>';
+    }
+
+    // Union of keys across rows so sparse Aurora columns still get a column
+    const cols = [];
+    rows.forEach(row => {
+        Object.keys(row || {}).forEach(key => {
+            if (!cols.includes(key)) cols.push(key);
+        });
+    });
+
+    let html = '<div class="aurora-table-wrap"><table class="aurora-table"><thead><tr>';
+    cols.forEach(c => { html += `<th>${escapeHtml(c)}</th>`; });
+    html += '</tr></thead><tbody>';
+    rows.forEach(row => {
+        html += '<tr>';
+        cols.forEach(c => { html += `<td>${escapeHtml(row ? row[c] : '')}</td>`; });
+        html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    return html;
+}
+
+// Load Aurora status data
+async function loadAurora() {
+    const content = document.getElementById('auroraContent');
+    const body = document.getElementById('auroraBody');
+
+    const data = await fetchData('/aurora');
+    if (!data) {
+        body.innerHTML = '<div style="text-align: center; padding: 2rem; color: #7f8c8d;">No Aurora data available</div>';
+        return;
+    }
+
+    body.innerHTML = `
+        <div class="aurora-block">
+            <div class="aurora-versions">
+                <div class="aurora-version-card">
+                    <div class="aurora-label">aurora_version()</div>
+                    <div class="aurora-value">${escapeHtml(data.aurora_version)}</div>
+                </div>
+                <div class="aurora-version-card">
+                    <div class="aurora-label">version()</div>
+                    <div class="aurora-value">${escapeHtml(data.postgres_version)}</div>
+                </div>
+            </div>
+        </div>
+        <div class="aurora-block">
+            <div class="aurora-label">aurora_db_instance_identifier()</div>
+            <div class="aurora-value">${escapeHtml(data.instance_identifier)}</div>
+        </div>
+        <div class="aurora-block">
+            <div class="aurora-label">aurora_replica_status()</div>
+            ${renderAuroraRows(data.replica_status)}
+        </div>
+        <div class="aurora-block">
+            <div class="aurora-label">aurora_stat_activity()</div>
+            ${renderAuroraRows(data.stat_activity)}
+        </div>
+    `;
+
+    content.dataset.loaded = 'true';
+}
+
 // Initial load
 showPoints();
 loadStats();

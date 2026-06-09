@@ -250,6 +250,79 @@
             margin-top: 0.25rem;
             font-weight: 500;
         }
+
+        /* AWS Aurora panel */
+        .aurora-block {
+            margin-bottom: 1.25rem;
+        }
+
+        .aurora-versions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .aurora-version-card {
+            padding: 0.75rem 1rem;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 3px solid #9b59b6;
+        }
+
+        .aurora-label {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 0.8rem;
+            color: #9b59b6;
+            font-weight: 600;
+            margin-bottom: 0.35rem;
+        }
+
+        .aurora-value {
+            color: #2c3e50;
+            font-size: 0.95rem;
+            word-break: break-word;
+        }
+
+        .aurora-table-wrap {
+            overflow-x: auto;
+            margin-top: 0.5rem;
+        }
+
+        .aurora-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 0.8rem;
+        }
+
+        .aurora-table th,
+        .aurora-table td {
+            border: 1px solid #e1e4e8;
+            padding: 0.35rem 0.5rem;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .aurora-table th {
+            background: #f1f3f5;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .aurora-table td {
+            color: #555;
+        }
+
+        .aurora-empty {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            padding: 0.5rem 0;
+        }
+
+        .aurora-error {
+            color: #e74c3c;
+            font-size: 0.85rem;
+            padding: 0.5rem 0;
+        }
     </style>
 </head>
 <body>
@@ -309,7 +382,19 @@
                 </div>
             </div>
         </div>
-        
+
+        <div class="locations-section">
+            <div class="locations-header" id="auroraHeader">
+                <h3>AWS Aurora</h3>
+                <span class="locations-toggle" id="auroraToggle">▼</span>
+            </div>
+            <div class="locations-content" id="auroraContent">
+                <div id="auroraBody">
+                    <div style="text-align: center; padding: 2rem; color: #7f8c8d;">Loading Aurora status...</div>
+                </div>
+            </div>
+        </div>
+
         <div class="about">
             <img src="images/maverick-radio.webp" alt="BridgeCom Systems Maverick Transceiver" onerror="this.style.display='none'">
             <div class="about-content">
