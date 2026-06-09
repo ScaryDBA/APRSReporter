@@ -82,7 +82,6 @@ async function showPoints() {
     
     if (data.features.length > 0) {
         map.fitBounds(geojsonLayer.getBounds(), { padding: [50, 50] });
-        updateStats(data);
     }
 }
 
@@ -243,38 +242,33 @@ async function showExtremes() {
     }
 }
 
-// Update statistics
-function updateStats(data) {
-    if (!data || !data.features) return;
-    
-    const features = data.features;
-    document.getElementById('statPositions').textContent = features.length;
-    
+// Load statistics from the /stats endpoint (per-journey aggregates)
+async function loadStats() {
+    const data = await fetchData('/stats');
+    if (!Array.isArray(data) || data.length === 0) return;
+
     let totalDistance = 0;
     let maxSpeed = 0;
-    let minAltitude = Infinity;
-    let maxAltitude = -Infinity;
+    let totalLocations = 0;
     let lastUpdate = null;
-    
-    features.forEach(f => {
-        const props = f.properties;
-        if (props.distance) totalDistance += parseFloat(props.distance);
-        if (props.speed && props.speed > maxSpeed) maxSpeed = props.speed;
-        if (props.altitude != null) {
-            if (props.altitude < minAltitude) minAltitude = props.altitude;
-            if (props.altitude > maxAltitude) maxAltitude = props.altitude;
+
+    data.forEach(row => {
+        if (row.total_distance_km) totalDistance += parseFloat(row.total_distance_km);
+        if (row.max_speed_kmh && parseFloat(row.max_speed_kmh) > maxSpeed) {
+            maxSpeed = parseFloat(row.max_speed_kmh);
         }
-        if (props.time) {
-            const time = new Date(props.time);
+        if (row.unique_locations) totalLocations += parseInt(row.unique_locations, 10);
+        if (row.last_transmission) {
+            const time = new Date(row.last_transmission);
             if (!lastUpdate || time > lastUpdate) lastUpdate = time;
         }
     });
-    
+
+    document.getElementById('statJourneys').textContent = data.length;
     document.getElementById('statDistance').textContent = totalDistance.toFixed(2) + ' km';
     document.getElementById('statMaxSpeed').textContent = maxSpeed.toFixed(1) + ' km/h';
-    document.getElementById('statMinAlt').textContent = minAltitude !== Infinity ? minAltitude.toFixed(1) + ' m' : '-';
-    document.getElementById('statMaxAlt').textContent = maxAltitude !== -Infinity ? maxAltitude.toFixed(1) + ' m' : '-';
-    document.getElementById('statLastUpdate').textContent = lastUpdate ? 
+    document.getElementById('statLocations').textContent = totalLocations;
+    document.getElementById('statLastUpdate').textContent = lastUpdate ?
         lastUpdate.toLocaleString() : '-';
 }
 
@@ -325,6 +319,7 @@ document.getElementById('btnRefresh').addEventListener('click', () => {
         case 'coverage': showCoverage(); break;
         case 'extremes': showExtremes(); break;
     }
+    loadStats();
 });
 // Date filter change handler
 document.getElementById('dateFilter').addEventListener('change', () => {
@@ -401,3 +396,4 @@ async function loadLocations() {
 
 // Initial load
 showPoints();
+loadStats();
