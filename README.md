@@ -56,7 +56,7 @@ This project showcases PostgreSQL/PostGIS capabilities for geographic informatio
    
    The Flyway project includes all database objects: tables, functions, triggers, and views.
 
-3. **Create Lambda functions:** Deploy code from `lambda_function.py`, `api_lambda_function.py`, `geocoder_lambda_function.py`
+3. **Create Lambda functions:** Deploy code from `aprs_poller_lambda_function.py`, `api_lambda_function.py`, `geocoder_lambda_function.py`
 
 4. **Set up API Gateway** with AWS_PROXY integration
 
@@ -77,7 +77,7 @@ Base URL: `https://your-api-id.execute-api.us-east-1.amazonaws.com/aprs_reporter
 ## Project Structure
 
 ```
-├── lambda_function.py              # APRS data poller
+├── aprs_poller_lambda_function.py  # APRS data poller
 ├── api_lambda_function.py          # REST API handler (calls DB functions)
 ├── geocoder_lambda_function.py     # Reverse geocoding service
 ├── requirements.txt                # Python dependencies (psycopg2)
