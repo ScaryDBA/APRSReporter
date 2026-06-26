@@ -2,6 +2,10 @@ databaseType = "PostgreSql"
 id = "6b19259a-5311-48df-bed8-a5a3a6643a6d"
 name = "APRS Reporter"
 
+[environments.target1]
+schemas = [ "public", "reports" ]
+url = "jdbc:postgresql://aprs-instance-1.c2ek9ilzyxhz.us-east-1.rds.amazonaws.com:5432/aprs_reporter"
+
 [flyway]
 callbackLocations = [ "filesystem:callbacks" ]
 locations = [ "filesystem:migrations" ]
@@ -10,12 +14,13 @@ outOfOrder = true
 schemaModelLocation = "schema-model"
 validateMigrationNaming = true
 
-  [flyway.check]
-  majorTolerance = 0
-
 [flywayDesktop]
+enableMigrations = true
 developmentEnvironment = "development"
 shadowEnvironment = "shadow"
+
+  [flywayDesktop.generate]
+  undoScripts = false
 
 [redgateCompare]
 filterFile = "filter.rgf"
@@ -25,7 +30,3 @@ detectRenames = "identical-only"
 
 [redgateCompare.postgresql.options.ignores]
 ignoreNewlinesInTextObjects = "off"
-
-[environments.target1]
-url = "jdbc:postgresql://aprs-instance-1.c2ek9ilzyxhz.us-east-1.rds.amazonaws.com:5432/aprs_reporter"
-schemas = [ "public", "reports" ]
