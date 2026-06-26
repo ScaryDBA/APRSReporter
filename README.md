@@ -28,6 +28,11 @@ This project showcases PostgreSQL/PostGIS capabilities for geographic informatio
 - **EventBridge** - Scheduled triggers
 - **Secrets Manager** - Secure credential storage
 
+### Network Security
+- Aurora is **not** exposed to the open internet. Its security group allows inbound `5432` only from the Lambda security group — no `0.0.0.0/0` rule.
+- The Lambdas run **inside the VPC** (private subnets) and reach the database over private networking.
+- Outbound internet for the Lambdas (APRS.fi, Nominatim, AWS APIs) is provided by a small **NAT instance**, avoiding a costly NAT Gateway.
+
 ### PostGIS Features Demonstrated
 - Geography type with true spherical distance calculations
 - Spatial indexes (GIST) for fast queries
