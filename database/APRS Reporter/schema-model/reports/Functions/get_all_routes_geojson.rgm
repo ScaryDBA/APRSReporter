@@ -1,3 +1,37 @@
+function "reports"."get_all_routes_geojson()" {
+  text = """
+
+DECLARE
+    v_result jsonb;
+BEGIN
+    SELECT jsonb_build_object(
+        'type', 'FeatureCollection',
+        'features', jsonb_agg(
+            jsonb_build_object(
+                'type', 'Feature',
+                'geometry', ST_AsGeoJSON(route_line::geometry)::jsonb,
+                'properties', jsonb_build_object(
+                    'date', track_date,
+                    'points', point_count,
+                    'distance_km', total_km
+                )
+            )
+        )
+    )
+    INTO v_result
+    FROM reports.route_track;
+    
+    RETURN COALESCE(v_result, '{"type": "FeatureCollection", "features": []}'::jsonb);
+END;
+"""
+  returnType = jsonb
+  arguments = [
+  ]
+  language = plpgsql
+  owner = postgres
+  comment = Returns all route tracks as GeoJSON FeatureCollection
+}
+
 function "reports"."get_all_routes_geojson(date)" {
   text = """
 
